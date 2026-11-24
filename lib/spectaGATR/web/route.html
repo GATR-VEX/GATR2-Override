@@ -19,7 +19,7 @@
     <button type="button" data-add="bezier" title="Clicks on the field add curves; drag their handles.">Curve</button>
   </span>
   <button type="button" id="btn-turn" title="Turn in place at the end of the route.">Add turn</button>
-  <button type="button" id="btn-wait" title="A stop. It also ends the current move, so next() stops there.">Add wait</button>
+  <button type="button" id="btn-path" title="End this path here; the next point starts a new one (a new next() step).">New path</button>
   <button type="button" id="btn-undo" title="Remove the last step.">Undo</button>
   <button type="button" id="btn-clear" title="Remove every step.">Clear</button>
   <label class="ctl"><input type="checkbox" id="snap" checked> Snap 0.5 in</label>
@@ -70,10 +70,10 @@
       <ul>
         <li>Inches and degrees, in the red frame (docs/field-frame.md). The same route runs from blue.</li>
         <li>Click the field to add a point. Drag any point or curve handle.</li>
-        <li>Lines and curves in a row are one move: one <code>next()</code>. A turn or a wait ends it.</li>
+        <li>Lines and curves in a row are one path: one <code>next()</code>. New path or a turn ends it.</li>
         <li>The heading holds unless a segment sets <i>facing</i> or <i>tangent</i>.</li>
         <li>Outlines show the robot at the start and after each step.</li>
-        <li><code>at()</code> actions are code: add them after pasting. Loading code keeps the geometry only.</li>
+        <li>Waits and <code>at()</code> actions go in the program. Loading code keeps the paths only.</li>
       </ul>
     </section>
   </aside>

@@ -29,11 +29,12 @@ Fields come from `../fields/` (served at `/fields/<name>.json`, listed at
   points and curve handles. Snap rounds to 0.5 in.
 - Inches and degrees in the red frame of `docs/field-frame.md` in
   GATR2-Override, the same as the robot code.
-- Colors and numbers are `next()` steps: lines and curves in a row are one;
-  a turn or a wait is its own.
+- Colors and numbers are `next()` steps: lines and curves in a row are one
+  path; New path (`.path()`) or a turn starts the next.
 - Robot outlines at the start and after each step, sized from the side panel.
-- The code box is the output: copy it into the program. Load from code reads
-  it back. `at()` actions are left out and counted; add them after pasting.
+- The code box is the output: the route's paths, to copy into the program.
+  Load from code reads it back. Waits and `at()` actions belong in the
+  program; loading leaves them out and counts them.
 - The draft and the field choice are kept in the browser's localStorage.
 
 ## Controls
