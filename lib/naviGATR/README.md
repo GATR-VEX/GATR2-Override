@@ -30,6 +30,7 @@ navigator.follow(route);
 | Call | Does |
 |---|---|
 | `Route({x, y, heading})` | Start pose |
+| `path()` | The next segment starts a new move, so `next()` stops before it |
 | `line({x, y})` | Straight to the point |
 | `bezier(c1, c2, end)` | Cubic Bezier: two control points, then the end |
 | `facing(heading)` | Last segment ends facing this way |
@@ -134,6 +135,6 @@ ctest --test-dir build-navigatr --output-on-failure
 
 ## Status
 
-37 host tests, including whole routes and single steps on a simulated robot.
+38 host tests, including whole routes and single steps on a simulated robot.
 Builds with PROS 4.2.2. Not run on a robot; the navigator task (start, load,
 next, wait, cancel) has not run at all.

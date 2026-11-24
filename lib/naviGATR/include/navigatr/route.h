@@ -1,10 +1,13 @@
 // route.h
 // An autonomous route. Segments in a row are one move, with no stop between
-// them. The heading holds unless facing() or tangent() is given. Portable.
+// them; path() starts a new one. The heading holds unless facing() or
+// tangent() is given. Portable.
 //
 //   Route({24, 12, 90})
 //       .bezier({36, 24}, {48, 48}, {60, 48}).facing(0)
 //       .line({60, 72}).at(0.5, [] { intake.move(127); })
+//       .path()
+//       .line({36, 72})
 //       .turnTo(180)
 //       .wait(300);
 
@@ -46,6 +49,8 @@ class Route {
   public:
     explicit Route(const Pose& start);
 
+    // The next segment starts a new move: the robot stops and settles first.
+    Route& path();
     Route& line(Point end);
     Route& bezier(Point control_1, Point control_2, Point end);
     // The last segment ends facing this way.
@@ -66,7 +71,8 @@ class Route {
 
     Pose              start_;
     Point             position_;
-    double            heading_ = 0;
+    double            heading_  = 0;
+    bool              new_move_ = false; // path() called since the last segment
     std::vector<Step> steps_;
 };
 

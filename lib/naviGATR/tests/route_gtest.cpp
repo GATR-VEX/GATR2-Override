@@ -20,6 +20,15 @@ TEST(Route, SegmentsInARowAreOneMove) {
     EXPECT_DOUBLE_EQ(move.segments[1].end_heading, 90); // heading holds by default
 }
 
+TEST(Route, PathStartsANewMove) {
+    const Route route = Route({0, 0, 0}).path().line({24, 0}).facing(90).path().line({24, 24}).line({0, 24});
+    ASSERT_EQ(route.steps().size(), 2u); // a leading path() adds nothing
+    EXPECT_EQ(route.steps()[0].segments.size(), 1u);
+    ASSERT_EQ(route.steps()[1].segments.size(), 2u);
+    EXPECT_DOUBLE_EQ(route.steps()[1].segments[0].curve.p0.x, 24); // starts where the last ended
+    EXPECT_DOUBLE_EQ(route.steps()[1].segments[0].start_heading, 90);
+}
+
 TEST(Route, TurnAndWaitEndAMove) {
     const Route route = Route({0, 0, 0}).line({24, 0}).turnTo(90).wait(250).line({24, 24});
     ASSERT_EQ(route.steps().size(), 4u);

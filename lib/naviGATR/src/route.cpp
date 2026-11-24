@@ -11,10 +11,16 @@ namespace navigatr
 Route::Route(const Pose& start)
     : start_(start), position_{start.x, start.y}, heading_(start.heading) {}
 
+Route& Route::path() {
+    new_move_ = true;
+    return *this;
+}
+
 Route& Route::addSegment(const Bezier& curve) {
-    if (steps_.empty() || steps_.back().kind != Step::Kind::kMove) {
+    if (steps_.empty() || steps_.back().kind != Step::Kind::kMove || new_move_) {
         steps_.push_back(Step{});
     }
+    new_move_ = false;
     Segment segment;
     segment.curve         = curve;
     segment.start_heading = heading_;
