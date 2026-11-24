@@ -11,8 +11,7 @@
 constexpr locagatr::Pose kStart{23.4, 23.4, 0};
 
 void initialize() {
-    pros::lcd::initialize();
-    pros::lcd::set_text(0, "IMU calibrating, keep still");
+    message(0, "IMU calibrating, keep still");
 
     const bool started = localizer.start(); // about 2 s
     std::printf("%s\n", localizer.describe().c_str());
@@ -20,7 +19,7 @@ void initialize() {
 
     startDisplay();
     if (!started) {
-        pros::lcd::set_text(6, "localizer: a stage failed, see terminal");
+        message(6, "localizer: a stage failed, see terminal");
     }
 }
 
@@ -28,11 +27,19 @@ void disabled() {}
 
 void competition_initialize() {}
 
-void autonomous() {
-    // First test: 24 in forward, then face left.
-    const navigatr::Route route = navigatr::Route(kStart).line({47.4, 23.4}).turnTo(90);
+// First test: 24 in forward, then face left.
+navigatr::Route autonRoute() { return navigatr::Route(kStart).line({47.4, 23.4}).turnTo(90); }
+
+// The robot must sit at the route's start pose: the pose is reset to it.
+void startAuton() {
+    const navigatr::Route route = autonRoute();
     localizer.setPose(route.startPose());
-    navigator.follow(route);
+    navigator.start(route);
+}
+
+void autonomous() {
+    startAuton();
+    navigator.wait();
 }
 
 void opcontrol() {
@@ -44,6 +51,18 @@ void opcontrol() {
     pros::MotorGroup rr_mg({-7, 8}); // rear right
 
     while (true) {
+        // A runs the auton route, B stops it. The sticks do nothing meanwhile.
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) && !navigator.isRunning()) {
+            startAuton();
+        }
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+            navigator.cancel();
+        }
+        if (navigator.isRunning()) {
+            pros::delay(20);
+            continue;
+        }
+
         // Mecanum: left stick drives and strafes, right stick turns.
         const int dir    = master.get_analog(ANALOG_LEFT_Y);
         const int strafe = master.get_analog(ANALOG_LEFT_X);

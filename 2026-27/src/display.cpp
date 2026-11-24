@@ -29,38 +29,60 @@ void count(char* text, std::size_t size, const char* name, const std::optional<i
     }
 }
 
+// Padded so a shorter line covers the last one.
+void line(int n, const char* text) {
+    pros::screen::print(pros::E_TEXT_MEDIUM, n, "%-48s", text);
+}
+
 void run(void*) {
+    pros::Controller controller(pros::E_CONTROLLER_MASTER);
+    uint32_t         tick = 0;
+    char             text[96];
     while (true) {
         const locagatr::Pose   pose   = localizer.getPose();
         const locagatr::Status status = localizer.getStatus();
+        const locagatr::SensorMap&   sensors  = status.sensors;
+        const locagatr::BoardStatus& board    = sensors.board;
+        const locagatr::Estimate&    estimate = status.estimate;
 
         viz.updatePose(spectagatr::inchesToMeters(pose.x), spectagatr::inchesToMeters(pose.y),
                        spectagatr::degreesToRadians(pose.heading));
 
-        pros::lcd::print(0, "x %.1f  y %.1f  h %.1f", pose.x, pose.y, pose.heading);
+        std::snprintf(text, sizeof text, "x %.1f  y %.1f  h %.1f", pose.x, pose.y, pose.heading);
+        line(0, text);
 
-        const locagatr::SensorMap& sensors = status.sensors;
-        char                       tw[3][24];
+        char tw[3][24];
         count(tw[0], sizeof tw[0], "TW0", sensors.encoder_counts[0]);
         count(tw[1], sizeof tw[1], "TW1", sensors.encoder_counts[1]);
         count(tw[2], sizeof tw[2], "TW2", sensors.encoder_counts[2]);
-        pros::lcd::print(1, "%s  %s  %s", tw[0], tw[1], tw[2]);
+        std::snprintf(text, sizeof text, "%s  %s  %s", tw[0], tw[1], tw[2]);
+        line(1, text);
 
-        const locagatr::BoardStatus& board = sensors.board;
-        pros::lcd::print(2, "board %s  req %lu  rep %lu  timeout %lu", board.fresh ? "ok" : "QUIET",
-                         static_cast<unsigned long>(board.requests),
-                         static_cast<unsigned long>(board.replies),
-                         static_cast<unsigned long>(board.timeouts));
+        std::snprintf(text, sizeof text, "board %s  req %lu  rep %lu  timeout %lu",
+                      board.fresh ? "ok" : "QUIET", static_cast<unsigned long>(board.requests),
+                      static_cast<unsigned long>(board.replies),
+                      static_cast<unsigned long>(board.timeouts));
+        line(2, text);
 
         if (sensors.imu) {
-            pros::lcd::print(3, "imu %.1f", sensors.imu->rotation);
+            std::snprintf(text, sizeof text, "imu %.1f", sensors.imu->rotation);
         } else {
-            pros::lcd::print(3, "imu --");
+            std::snprintf(text, sizeof text, "imu --");
         }
+        line(3, text);
 
-        const locagatr::Estimate& estimate = status.estimate;
-        pros::lcd::print(4, "%s%s", estimate.missing != nullptr ? "missing " : "tracking",
-                         estimate.missing != nullptr ? estimate.missing : "");
+        std::snprintf(text, sizeof text, "%s%s", estimate.missing != nullptr ? "missing " : "tracking",
+                      estimate.missing != nullptr ? estimate.missing : "");
+        line(4, text);
+
+        // Controller: one row per tick, it takes no more than one print per 50 ms.
+        switch (tick++ % 3) {
+        case 0: controller.print(0, 0, "x%6.1f y%6.1f   ", pose.x, pose.y); break;
+        case 1: controller.print(1, 0, "h%6.1f %-8s", pose.heading, board.fresh ? "board ok" : "NO BOARD"); break;
+        case 2:
+            controller.print(2, 0, "%-17s", estimate.missing != nullptr ? estimate.missing : "tracking");
+            break;
+        }
 
         pros::delay(kPeriodMs);
     }
@@ -69,6 +91,8 @@ void run(void*) {
 } // namespace
 
 spectagatr::Viewer viz(vizConfig());
+
+void message(int n, const char* text) { line(n, text); }
 
 void startDisplay() {
     viz.start();
