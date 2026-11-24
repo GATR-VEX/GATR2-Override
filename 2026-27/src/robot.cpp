@@ -15,7 +15,7 @@ gatr2::Robot robot() {
     left.axis           = gatr2::Axis::kForward;
     left.counts_per_rev = 4000; // AS5047P 1000 PPR, x4. CHECK: spin 10 turns
     left.diameter       = 1.89; // 48 mm
-    left.direction      = 1;    // CHECK: counts up pushing forward
+    left.direction      = -1;   // counts down pushing forward
     left.offset         = 6.73; // left of center: 18.7 - 1.6 = 17.1 cm
 
     gatr2::TrackingWheel back;
