@@ -6,9 +6,9 @@
 #include "localization.h"
 #include "navigation.h"
 
-// Starts one tile in from the red audience corner, facing blue. docs/field-frame.md.
+// Starts against the red wall, halfway up it, facing blue. docs/field-frame.md.
 navigatr::Route autonRoute() {
-    return navigatr::Route({23.4, 23.4, 0})
+    return navigatr::Route({7.5, 69.5, 0})
         .bezier({66, 66}, {39, 99}, {61, 100.5})
         .bezier({100, 110.5}, {94, 81}, {116.5, 70.5})
         .facing(180)
