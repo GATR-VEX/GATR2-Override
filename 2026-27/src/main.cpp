@@ -1,109 +1,57 @@
 #include "main.h"
+
+#include <cstdio>
+
+#include "display.h"
 #include "localization.h"
 #include "navigation.h"
 
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
+// Bench start: robot center over the tile seam crossing one tile from the red
+// wall and one from the audience wall, facing blue. docs/field-frame.md.
+constexpr locagatr::Pose kStart{23.4, 23.4, 0};
 
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+    pros::lcd::initialize();
+    pros::lcd::set_text(0, "IMU calibrating, keep still");
 
-	pros::lcd::register_btn1_cb(on_center_button);
+    const bool started = localizer.start(); // about 2 s
+    std::printf("%s\n", localizer.describe().c_str());
+    localizer.setPose(kStart);
 
-	localizer.start(); // calibrates the IMU, about 2 s: keep the robot still
+    startDisplay();
+    if (!started) {
+        pros::lcd::set_text(6, "localizer: a stage failed, see terminal");
+    }
 }
 
-/**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
- */
 void disabled() {}
 
-/**
- * Runs after initialize(), and before autonomous when connected to the Field
- * Management System or the VEX Competition Switch. This is intended for
- * competition-specific initialization routines, such as an autonomous selector
- * on the LCD.
- *
- * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
- */
 void competition_initialize() {}
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
 void autonomous() {
-	// First test: 24 in forward, then face left.
-	const navigatr::Route route = navigatr::Route({0, 0, 0}).line({24, 0}).turnTo(90);
-	localizer.setPose(route.startPose());
-	navigator.follow(route);
+    // First test: 24 in forward, then face left.
+    const navigatr::Route route = navigatr::Route(kStart).line({47.4, 23.4}).turnTo(90);
+    localizer.setPose(route.startPose());
+    navigator.follow(route);
 }
 
-/**
- * Runs the operator control code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the operator
- * control mode.
- *
- * If no competition control is connected, this function will run immediately
- * following initialize().
- *
- * If the robot is disabled or communications is lost, the
- * operator control task will be stopped. Re-enabling the robot will restart the
- * task, not resume it from where it left off.
- */
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
+    pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-	pros::MotorGroup fl_mg({-1, 2});  // Front left
-	pros::MotorGroup fr_mg({5, -6});  // Front right
-	pros::MotorGroup rl_mg({3, -4});  // Rear left
-	pros::MotorGroup rr_mg({-7, 8});  // Rear right
+    pros::MotorGroup fl_mg({-1, 2}); // front left
+    pros::MotorGroup fr_mg({5, -6}); // front right
+    pros::MotorGroup rl_mg({3, -4}); // rear left
+    pros::MotorGroup rr_mg({-7, 8}); // rear right
 
-
-	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
-
-		// Mecanum control scheme
-		int dir = master.get_analog(ANALOG_LEFT_Y);     // Gets amount forward/backward from left joystick
-		int strafe = master.get_analog(ANALOG_LEFT_X);  // Gets amount left/right from left joystick
-		int turn = master.get_analog(ANALOG_RIGHT_X);   // Gets the turn left/right from right joystick
-		fl_mg.move(dir + strafe + turn);                // Sets front left motor voltage
-		fr_mg.move(dir - strafe - turn);                // Sets front right motor voltage
-		rl_mg.move(dir - strafe + turn);                // Sets rear left motor voltage
-		rr_mg.move(dir + strafe - turn);                // Sets rear right motor voltage
-		pros::delay(20);                                // Run for 20 ms then update
-	}
+    while (true) {
+        // Mecanum: left stick drives and strafes, right stick turns.
+        const int dir    = master.get_analog(ANALOG_LEFT_Y);
+        const int strafe = master.get_analog(ANALOG_LEFT_X);
+        const int turn   = master.get_analog(ANALOG_RIGHT_X);
+        fl_mg.move(dir + strafe + turn);
+        fr_mg.move(dir - strafe - turn);
+        rl_mg.move(dir - strafe + turn);
+        rr_mg.move(dir + strafe - turn);
+        pros::delay(20);
+    }
 }
