@@ -6,12 +6,14 @@
 #include "localization.h"
 #include "navigation.h"
 
-// Starts against the red wall, halfway up it, facing the audience. docs/field-frame.md.
+// Starts against the red wall, halfway up it, facing blue. docs/field-frame.md.
 navigatr::Route autonRoute() {
-    return navigatr::Route({7.5, 69.5, 270})
-        .bezier({12, 70.5}, {7, 30}, {12, 12})
+    return navigatr::Route({7.5, 69.5, 0})
+        .bezier({12, 70.5}, {5.5, 47.5}, {13, 46.5})
+        .facing(0)
+        .bezier({16, 16.5}, {11, 11}, {11, 12})
         .facing(180)
-        .bezier({22.5, 12}, {23, 24}, {35.5, 22.5})
+        .bezier({17, 15.5}, {26, 26}, {36, 23})
         .facing(0);
 }
 
