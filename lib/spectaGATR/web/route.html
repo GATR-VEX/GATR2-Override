@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spectaGATR routes</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./route.css">
+</head>
+<body data-field="">
+
+<header id="bar">
+  <a class="brand" href="./" title="Back to the live viewer">spectaGATR</a>
+  <span class="muted">route editor</span>
+  <label class="ctl">Field <select id="field-select"><option value="">(loading)</option></select></label>
+  <span class="group" role="group" aria-label="New segments">
+    <button type="button" data-add="line" class="active" title="Clicks on the field add straight lines.">Line</button>
+    <button type="button" data-add="bezier" title="Clicks on the field add curves; drag their handles.">Curve</button>
+  </span>
+  <button type="button" id="btn-turn" title="Turn in place at the end of the route.">Add turn</button>
+  <button type="button" id="btn-wait" title="A stop. It also ends the current move, so next() stops there.">Add wait</button>
+  <button type="button" id="btn-undo" title="Remove the last step.">Undo</button>
+  <button type="button" id="btn-clear" title="Remove every step.">Clear</button>
+  <label class="ctl"><input type="checkbox" id="snap" checked> Snap 0.5 in</label>
+</header>
+
+<main>
+  <div id="view">
+    <svg id="field" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="cursor" class="muted small"></div>
+  </div>
+
+  <aside id="side">
+    <section class="panel">
+      <h2>Start pose</h2>
+      <div class="row">
+        <label>x <input type="number" step="0.5" id="start-x"></label>
+        <label>y <input type="number" step="0.5" id="start-y"></label>
+        <label>heading <input type="number" step="5" id="start-h"></label>
+      </div>
+      <div class="row muted small">
+        <label>robot length <input type="number" step="0.1" id="robot-l"></label>
+        <label>width <input type="number" step="0.1" id="robot-w"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Selected</h2>
+      <div id="selected" class="muted">Click a point or a step.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Steps <span class="muted small">(numbers are next() steps)</span></h2>
+      <ol id="steps"></ol>
+    </section>
+
+    <section class="panel">
+      <h2>Code</h2>
+      <textarea id="code" spellcheck="false" rows="10"></textarea>
+      <div class="row">
+        <button type="button" id="btn-copy">Copy</button>
+        <button type="button" id="btn-load" title="Read the route from the code box.">Load from code</button>
+        <span id="code-note" class="muted small"></span>
+      </div>
+    </section>
+
+    <section class="panel legend">
+      <h2>How it works</h2>
+      <ul>
+        <li>Inches and degrees, in the red frame (docs/field-frame.md). The same route runs from blue.</li>
+        <li>Click the field to add a point. Drag any point or curve handle.</li>
+        <li>Lines and curves in a row are one move: one <code>next()</code>. A turn or a wait ends it.</li>
+        <li>The heading holds unless a segment sets <i>facing</i> or <i>tangent</i>.</li>
+        <li>Outlines show the robot at the start and after each step.</li>
+        <li><code>at()</code> actions are code: add them after pasting. Loading code keeps the geometry only.</li>
+      </ul>
+    </section>
+  </aside>
+</main>
+
+<script type="module" src="./route.js"></script>
+</body>
+</html>

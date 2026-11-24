@@ -13,11 +13,28 @@ address the receiver prints; opening `index.html` as a file is not supported.
 | `feed.js` | WebSocket to `/ws` with reconnect (250 ms backoff doubling to 2 s); `FeedModel` only records messages |
 | `scene.js` | three.js scene: field meshes (built once per field change), robot box, path overlay, trail, conventions overlay, cameras |
 | `transforms.js` | Pure math and state: field to scene mapping, attitude quaternion, trail ring, path normalizing and segments, stale logic, smoothing |
+| `route.html`, `route.css`, `route.js` | Route editor page: draws a route on the field, writes `navigatr::Route` code |
+| `route_model.js` | Route editor data and math: steps, headings, `next()` numbering, code out and back in |
 | `vendor/three/` | three.js r170 + OrbitControls, MIT (see its README and LICENSE) |
-| `tests/` | Test page for `transforms.js`, `feed.js` and the robot/path/camera code |
+| `tests/` | Test page for `transforms.js`, `feed.js`, `route_model.js` and the robot/path/camera code |
 
 Fields come from `../fields/` (served at `/fields/<name>.json`, listed at
 `/api/fields`); the protocol is `../docs/PROTOCOL.md`.
+
+## Route editor
+
+`/route.html`, linked from the viewer's bar. It needs no Brain and no feed.
+
+- Click the field to add a point: a line, or a curve when Curve is on. Drag
+  points and curve handles. Snap rounds to 0.5 in.
+- Inches and degrees in the red frame of `docs/field-frame.md` in
+  GATR2-Override, the same as the robot code.
+- Colors and numbers are `next()` steps: lines and curves in a row are one;
+  a turn or a wait is its own.
+- Robot outlines at the start and after each step, sized from the side panel.
+- The code box is the output: copy it into the program. Load from code reads
+  it back. `at()` actions are left out and counted; add them after pasting.
+- The draft and the field choice are kept in the browser's localStorage.
 
 ## Controls
 

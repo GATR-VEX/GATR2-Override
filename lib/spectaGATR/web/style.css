@@ -60,6 +60,7 @@ input[type="checkbox"] { padding: 0; vertical-align: middle; }
 .brand { font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
 .group { display: inline-flex; gap: 4px; }
 .ctl { display: inline-flex; gap: 6px; align-items: center; }
+.navlink { color: var(--accent); }
 
 .pill {
     display: inline-block;
