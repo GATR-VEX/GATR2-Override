@@ -6,16 +6,20 @@
 #include "localization.h"
 #include "navigation.h"
 
-// Bench start: robot center over the tile seam crossing one tile from the red
-// wall and one from the audience wall, facing blue. docs/field-frame.md.
-constexpr locagatr::Pose kStart{23.4, 23.4, 0};
+// Starts against the red wall, halfway up it, facing blue. docs/field-frame.md.
+navigatr::Route autonRoute() {
+    return navigatr::Route({7.5, 69.5, 0})
+        .bezier({66, 66}, {39, 99}, {53.5, 109.5})
+        .bezier({79.5, 134.5}, {97, 77.5}, {116.5, 70})
+        .facing(180);
+}
 
 void initialize() {
     message(0, "IMU calibrating, keep still");
 
     const bool started = localizer.start(); // about 2 s
     std::printf("%s\n", localizer.describe().c_str());
-    localizer.setPose(kStart);
+    localizer.setPose(autonRoute().startPose()); // place the robot there before running
 
     startDisplay();
     if (!started) {
@@ -26,13 +30,6 @@ void initialize() {
 void disabled() {}
 
 void competition_initialize() {}
-
-navigatr::Route autonRoute() {
-    return navigatr::Route({7.5, 69.5, 0})
-        .bezier({66, 66}, {39, 99}, {53.5, 109.5})
-        .bezier({79.5, 134.5}, {97, 77.5}, {116.5, 70})
-        .facing(180);
-}
 
 // The robot must sit at the route's start pose: the pose is reset to it.
 void startAuton() {
