@@ -6,6 +6,7 @@ The programs that run on the robot.
 |---|---|
 | [lib/](lib/README.md) | Code reused across seasons: [locaGATR](lib/locaGATR/README.md) (pose), [naviGATR](lib/naviGATR/README.md) (routes), [spectaGATR](lib/spectaGATR/README.md) (live viewer) |
 | `2026-27/` | This season's PROS project |
+| [docs/](docs/field-frame.md) | Field frame: where x, y and heading point, on red and on blue |
 
 Each season gets its own PROS project folder.
 

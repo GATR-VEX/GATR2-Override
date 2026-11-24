@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ax" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c25e00"/></marker>
+    <marker id="ay" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2e7d32"/></marker>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker>
+  </defs>
+  <rect width="800" height="400" fill="#ffffff"/>
+
+  <!-- Red -->
+  <text x="190" y="38" font-size="18" font-weight="bold" text-anchor="middle" fill="#d50032">Red</text>
+  <rect x="40" y="60" width="300" height="300" fill="#f4f6f8"/>
+  <path d="M90,60V360M140,60V360M190,60V360M240,60V360M290,60V360M40,110H340M40,160H340M40,210H340M40,260H340M40,310H340" stroke="#dde2e8" stroke-width="1"/>
+  <rect x="34" y="54" width="312" height="6" fill="#9aa3ad"/>
+  <rect x="34" y="360" width="312" height="6" fill="#9aa3ad"/>
+  <rect x="34" y="54" width="6" height="312" fill="#d50032"/>
+  <rect x="340" y="54" width="6" height="312" fill="#00a3e0"/>
+  <rect x="40" y="78" width="10" height="14" fill="#d50032"/>
+  <rect x="40" y="329" width="10" height="14" fill="#d50032"/>
+  <rect x="330" y="78" width="10" height="14" fill="#00a3e0"/>
+  <rect x="330" y="329" width="10" height="14" fill="#00a3e0"/>
+  <text x="20" y="210" font-size="12" text-anchor="middle" fill="#555" transform="rotate(-90 20 210)">red wall (loaders)</text>
+  <text x="362" y="210" font-size="12" text-anchor="middle" fill="#555" transform="rotate(90 362 210)">blue wall (loaders)</text>
+  <text x="190" y="384" font-size="12" text-anchor="middle" fill="#555">audience</text>
+  <line x1="44" y1="356" x2="165" y2="356" stroke="#c25e00" stroke-width="4" marker-end="url(#ax)"/>
+  <line x1="44" y1="356" x2="44" y2="235" stroke="#2e7d32" stroke-width="4" marker-end="url(#ay)"/>
+  <circle cx="44" cy="356" r="5" fill="#222"/>
+  <text x="174" y="351" font-size="15" font-weight="bold" fill="#c25e00">+x</text>
+  <text x="54" y="232" font-size="15" font-weight="bold" fill="#2e7d32">+y</text>
+  <text x="34" y="384" font-size="12" text-anchor="middle" fill="#222">(0, 0)</text>
+  <rect x="95" y="195" width="30" height="30" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="110" y1="210" x2="152" y2="210" stroke="#222" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="156" y="215" font-size="13" fill="#222">0&#176;</text>
+  <path d="M134,210 A24,24 0 0 0 110,186" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#aa)"/>
+  <text x="96" y="180" font-size="13" text-anchor="end" fill="#666">90&#176;</text>
+
+  <!-- Blue -->
+  <text x="580" y="38" font-size="18" font-weight="bold" text-anchor="middle" fill="#00a3e0">Blue</text>
+  <rect x="430" y="60" width="300" height="300" fill="#f4f6f8"/>
+  <path d="M480,60V360M530,60V360M580,60V360M630,60V360M680,60V360M430,110H730M430,160H730M430,210H730M430,260H730M430,310H730" stroke="#dde2e8" stroke-width="1"/>
+  <rect x="424" y="54" width="312" height="6" fill="#9aa3ad"/>
+  <rect x="424" y="360" width="312" height="6" fill="#9aa3ad"/>
+  <rect x="424" y="54" width="6" height="312" fill="#d50032"/>
+  <rect x="730" y="54" width="6" height="312" fill="#00a3e0"/>
+  <rect x="430" y="78" width="10" height="14" fill="#d50032"/>
+  <rect x="430" y="329" width="10" height="14" fill="#d50032"/>
+  <rect x="720" y="78" width="10" height="14" fill="#00a3e0"/>
+  <rect x="720" y="329" width="10" height="14" fill="#00a3e0"/>
+  <text x="410" y="210" font-size="12" text-anchor="middle" fill="#555" transform="rotate(-90 410 210)">red wall (loaders)</text>
+  <text x="752" y="210" font-size="12" text-anchor="middle" fill="#555" transform="rotate(90 752 210)">blue wall (loaders)</text>
+  <text x="580" y="384" font-size="12" text-anchor="middle" fill="#555">audience</text>
+  <line x1="726" y1="64" x2="605" y2="64" stroke="#c25e00" stroke-width="4" marker-end="url(#ax)"/>
+  <line x1="726" y1="64" x2="726" y2="185" stroke="#2e7d32" stroke-width="4" marker-end="url(#ay)"/>
+  <circle cx="726" cy="64" r="5" fill="#222"/>
+  <text x="598" y="69" font-size="15" font-weight="bold" text-anchor="end" fill="#c25e00">+x</text>
+  <text x="716" y="200" font-size="15" font-weight="bold" text-anchor="end" fill="#2e7d32">+y</text>
+  <text x="736" y="44" font-size="12" text-anchor="middle" fill="#222">(0, 0)</text>
+  <rect x="645" y="195" width="30" height="30" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="660" y1="210" x2="618" y2="210" stroke="#222" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="614" y="215" font-size="13" text-anchor="end" fill="#222">0&#176;</text>
+  <path d="M636,210 A24,24 0 0 0 660,234" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#aa)"/>
+  <text x="674" y="250" font-size="13" fill="#666">90&#176;</text>
+</svg>
