@@ -38,6 +38,8 @@ TEST(Report, SaysWhatRunsFailedAndIsOff) {
     Measurement* m       = s.motion.add("IMU");
     m->yaw               = 91.2;
     s.estimate.pose.x    = 12.5;
+    EXPECT_TRUE(has(describe(c, s), "port not open"));
+    s.sensors.board.port_open = true;
 
     const std::string text = describe(c, s);
     EXPECT_TRUE(has(text, "VEX IMU: ok | control board: FAILED | motor encoders: off")) << text;

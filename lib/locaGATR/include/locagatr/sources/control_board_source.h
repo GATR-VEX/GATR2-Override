@@ -1,6 +1,7 @@
 // control_board_source.h
 // The control board: one GET_READINGS per tick, each record to the decoder for
-// its sensor type. Records with no decoder are counted in SensorMap::board.
+// its sensor type. Records with no decoder are counted in SensorMap::board. A
+// Smart Port that does not open is tried again every kRetryReads reads.
 
 #pragma once
 #include <array>
@@ -19,6 +20,8 @@ namespace locagatr
 
 class ControlBoardSource : public Source {
   public:
+    static constexpr uint32_t kRetryReads = 50; // about 0.5 s at 100 Hz
+
     ControlBoardSource() : decoders_{&encoder_counts_} {}
     explicit ControlBoardSource(std::vector<const RecordDecoder*> decoders)
         : decoders_(std::move(decoders)) {}
@@ -36,10 +39,16 @@ class ControlBoardSource : public Source {
     bool buildTable();
 
   private:
+    bool open();
+
     EncoderCountDecoder                   encoder_counts_;
     std::vector<const RecordDecoder*>     decoders_;
     std::array<const RecordDecoder*, 256> by_type_{};
     std::optional<Link>                   link_;
+    uint8_t                               port_      = 0;
+    int32_t                               baud_      = 0;
+    Timing                                timing_;
+    uint32_t                              retry_in_  = 0; // reads until the next open
     uint32_t                              unhandled_ = 0;
     uint8_t                               last_type_ = 0;
     uint8_t                               last_port_ = 0;

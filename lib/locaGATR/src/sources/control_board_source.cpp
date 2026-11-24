@@ -20,22 +20,44 @@ bool ControlBoardSource::buildTable() {
 }
 
 bool ControlBoardSource::begin(const Config& config) {
-    if (!buildTable()) {
+    if (!buildTable() || config.robot.board_port < 1 || config.robot.board_port > 21) {
         return false;
     }
-    const std::optional<Io> io = openSmartPort(config.robot.board_port, config.robot.board_baud);
+    port_                    = config.robot.board_port;
+    baud_                    = config.robot.board_baud;
+    timing_                  = Timing{};
+    timing_.reply_timeout_us = config.robot.board_reply_timeout_us;
+    link_.reset();
+    retry_in_ = 0;
+    open();
+    return true; // a port that did not open is tried again from read()
+}
+
+bool ControlBoardSource::open() {
+    const std::optional<Io> io = openSmartPort(port_, baud_);
     if (!io) {
         return false;
     }
-    Timing timing;
-    timing.reply_timeout_us = config.robot.board_reply_timeout_us;
-    link_.emplace(*io, timing);
+    link_.emplace(*io, timing_);
     return true;
 }
 
 void ControlBoardSource::read(SensorMap& sensors) {
+    if (!link_) {
+        if (retry_in_ > 0) {
+            --retry_in_;
+        } else if (!open()) {
+            retry_in_ = kRetryReads;
+        }
+    }
+    if (!link_) {
+        decode(Poll{}, LinkStats{}, sensors);
+        sensors.board.port_open = false;
+        return;
+    }
     const Poll poll = link_->transact();
     decode(poll, link_->stats(), sensors);
+    sensors.board.port_open = true;
 }
 
 void ControlBoardSource::decode(const Poll& poll, const LinkStats& stats, SensorMap& sensors) {

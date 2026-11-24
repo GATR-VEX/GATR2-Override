@@ -11,11 +11,23 @@
 namespace locagatr
 {
 
+int      g_open_failures = 0; // opens that fail before one works
+int      g_opens         = 0; // calls
+uint64_t g_now_us        = 0;
+
+// A port that never answers, in fake time.
 std::optional<Io> openSmartPort(uint8_t port, int32_t) {
-    if (port == 0) {
+    ++g_opens;
+    if (port == 0 || g_open_failures > 0) {
+        --g_open_failures;
         return std::nullopt;
     }
-    return Io{};
+    Io io;
+    io.write   = [](const uint8_t*, std::size_t) { return true; };
+    io.read    = [](uint8_t*, std::size_t) -> std::size_t { return 0; };
+    io.now_us  = [] { return g_now_us; };
+    io.wait_us = [](uint32_t us) { g_now_us += us; };
+    return io;
 }
 
 namespace
@@ -110,6 +122,34 @@ TEST(ControlBoardSource, TwoDecodersForOneTypeFailBegin) {
 TEST(ControlBoardSource, NoPortFailsBegin) {
     ControlBoardSource board;
     EXPECT_FALSE(board.begin(onPort(0)));
+    EXPECT_FALSE(board.begin(onPort(22)));
+}
+
+TEST(ControlBoardSource, PortThatFailsToOpenIsRetried) {
+    g_open_failures = 2;
+    g_opens         = 0;
+    ControlBoardSource board;
+    ASSERT_TRUE(board.begin(onPort(16))); // runs; the port is retried from read()
+    EXPECT_EQ(g_opens, 1);
+
+    SensorMap m;
+    board.read(m); // second try, fails
+    EXPECT_FALSE(m.board.port_open);
+    EXPECT_FALSE(m.board.fresh);
+    EXPECT_EQ(g_opens, 2);
+
+    for (uint32_t i = 0; i < ControlBoardSource::kRetryReads; ++i) {
+        m = SensorMap{};
+        board.read(m); // waiting
+        EXPECT_FALSE(m.board.port_open);
+    }
+    EXPECT_EQ(g_opens, 2);
+
+    m = SensorMap{};
+    board.read(m); // third try opens and polls
+    EXPECT_EQ(g_opens, 3);
+    EXPECT_TRUE(m.board.port_open);
+    EXPECT_EQ(m.board.requests, 1u);
 }
 
 TEST(ControlBoardSource, UnansweredPollLeavesCountsEmpty) {

@@ -58,8 +58,9 @@ void run(void*) {
         std::snprintf(text, sizeof text, "%s  %s  %s", tw[0], tw[1], tw[2]);
         line(1, text);
 
+        const char* link = !board.port_open ? "NO PORT" : board.fresh ? "ok" : "QUIET";
         std::snprintf(text, sizeof text, "board %s  req %lu  rep %lu  timeout %lu",
-                      board.fresh ? "ok" : "QUIET", static_cast<unsigned long>(board.requests),
+                      link, static_cast<unsigned long>(board.requests),
                       static_cast<unsigned long>(board.replies),
                       static_cast<unsigned long>(board.timeouts));
         line(2, text);
@@ -78,7 +79,10 @@ void run(void*) {
         // Controller: one row per tick, it takes no more than one print per 50 ms.
         switch (tick++ % 3) {
         case 0: controller.print(0, 0, "x%6.1f y%6.1f   ", pose.x, pose.y); break;
-        case 1: controller.print(1, 0, "h%6.1f %-8s", pose.heading, board.fresh ? "board ok" : "NO BOARD"); break;
+        case 1:
+            controller.print(1, 0, "h%6.1f %-8s", pose.heading,
+                             !board.port_open ? "NO PORT" : board.fresh ? "board ok" : "NO BOARD");
+            break;
         case 2:
             controller.print(2, 0, "%-17s", estimate.missing != nullptr ? estimate.missing : "tracking");
             break;

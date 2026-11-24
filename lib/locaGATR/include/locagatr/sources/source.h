@@ -27,6 +27,7 @@ struct ImuSample {
 };
 
 struct BoardStatus {
+    bool     port_open           = false; // the Smart Port is open; retried until it is
     bool     fresh               = false; // the board is answering
     bool     restarted           = false; // its counts started over this tick
     uint32_t requests            = 0;
