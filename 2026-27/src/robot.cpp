@@ -16,7 +16,7 @@ gatr2::Robot robot() {
     left.counts_per_rev = 4000; // AS5047P 1000 PPR, x4. CHECK: spin 10 turns
     left.diameter       = 1.89; // 48 mm
     left.direction      = 1;    // CHECK: counts up pushing forward
-    left.offset         = 6.0;  // left of center. CHECK
+    left.offset         = 6.73; // left of center: 18.7 - 1.6 = 17.1 cm
 
     gatr2::TrackingWheel back;
     back.name           = "back";
@@ -25,7 +25,7 @@ gatr2::Robot robot() {
     back.counts_per_rev = 4000;
     back.diameter       = 1.89;
     back.direction      = 1;    // CHECK: counts up pushing left
-    back.offset         = -2.5; // behind center. CHECK
+    back.offset         = -3.94; // behind center: 18.4 - 8.4 = 10.0 cm
 
     r.tracking_wheels = {left, back};
 
@@ -38,7 +38,7 @@ gatr2::Robot robot() {
     r.drive.gear_ratio     = 1.0; // CHECK
     r.drive.wheel_diameter = 4.0; // CHECK
     r.drive.mecanum        = true;
-    r.drive.track_width    = 12;  // CHECK
-    r.drive.wheelbase      = 12;  // CHECK
+    r.drive.track_width    = 12.6;  // 32 cm, wheel center to wheel center
+    r.drive.wheelbase      = 14.25; // 36.2 cm
     return r;
 }
