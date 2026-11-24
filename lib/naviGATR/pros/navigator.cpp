@@ -3,6 +3,8 @@
 
 #include "navigatr/navigator.h"
 
+#include <cstdio>
+
 #include "pros/misc.h"
 #include "pros/rtos.hpp"
 
@@ -36,10 +38,7 @@ Navigator::Navigator(const Config& config, const locagatr::Localizer& localizer)
           return io;
       }()) {}
 
-bool Navigator::start(const Route& route) {
-    if (running_.load()) {
-        return false;
-    }
+bool Navigator::ready() {
     if (begun_ == 0) {
         begun_ = pipeline_.begin() ? 1 : -1;
     }
@@ -49,17 +48,51 @@ bool Navigator::start(const Route& route) {
     if (task_ == nullptr) {
         task_ = pros::c::task_create(&Navigator::taskEntry, this, TASK_PRIORITY_DEFAULT,
                                      TASK_STACK_DEPTH_DEFAULT, kTaskName);
-        if (task_ == nullptr) {
-            return false;
-        }
     }
-    route_   = route; // the task is asleep: running_ is false
+    return task_ != nullptr;
+}
+
+void Navigator::launch() {
     outcome_ = Outcome{};
     cancel_.store(false);
     progress_.store(0);
     mode_.store(competitionMode());
     running_.store(true);
     pros::c::task_notify(static_cast<pros::task_t>(task_));
+}
+
+bool Navigator::start(const Route& route) {
+    if (running_.load() || !ready()) {
+        return false;
+    }
+    route_  = route; // the task is asleep: running_ is false
+    loaded_ = false;
+    step_   = -1;
+    launch();
+    return true;
+}
+
+bool Navigator::load(const Route& route) {
+    if (running_.load() || !ready()) {
+        return false;
+    }
+    route_  = route;
+    plan_   = pipeline_.plan(route_);
+    loaded_ = true;
+    next_   = 0;
+    return true;
+}
+
+bool Navigator::next() {
+    if (running_.load()) {
+        return false;
+    }
+    if (!loaded_ || next_ >= route_.steps().size()) {
+        std::printf("navigatr: next() with no step left\n");
+        return false;
+    }
+    step_ = static_cast<int>(next_++);
+    launch();
     return true;
 }
 
@@ -69,7 +102,8 @@ void Navigator::run() {
         if (!running_.load()) {
             continue;
         }
-        outcome_ = pipeline_.run(route_);
+        outcome_ = step_ < 0 ? pipeline_.run(route_)
+                             : pipeline_.runStep(route_, plan_, static_cast<std::size_t>(step_));
         running_.store(false);
     }
 }

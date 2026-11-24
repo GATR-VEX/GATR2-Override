@@ -1,6 +1,7 @@
 // pipeline.h
-// The path following loop. The Navigator task calls run() once per route
-// (pros/navigator.cpp). Portable: pose and time come in through Io.
+// The path following loop. The Navigator task calls run() once per route, or
+// runStep() once per step (pros/navigator.cpp). Portable: pose and time come
+// in through Io.
 //
 //   Outcome Pipeline::run(route) {
 //       plan(route);                                    // per move, before it drives:
@@ -79,9 +80,16 @@ class Pipeline {
     // the route; a cancel does.
     Outcome run(const Route& route);
 
+    // One step of a route, using plan(route) made beforehand. Progress covers
+    // this step only. The drive stops after it.
+    Outcome runStep(const Route& route, const Plan& plan, std::size_t index);
+
   private:
     enum class End { kSettled, kTimedOut, kCancelled };
 
+    End  step(const Step& s, const MovePlan* move_plan, double done, double total);
+    static void record(End end, std::size_t index, Outcome& outcome);
+    void report(double fraction);
     End  move(const MovePlan& plan, double done, double total);
     End  turn(const Step& step);
     End  wait(const Step& step);

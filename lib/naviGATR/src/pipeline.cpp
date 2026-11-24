@@ -57,37 +57,16 @@ Plan Pipeline::plan(const Route& route) const {
 
 Outcome Pipeline::run(const Route& route) {
     const Plan  whole = plan(route);
-    const auto  report = [&](double fraction) {
-        if (io_.progress) {
-            io_.progress(fraction);
-        }
-    };
     Outcome     outcome;
     std::size_t next_move = 0;
     double      done      = 0; // in, moves finished
     report(0.0);
     for (std::size_t i = 0; i < route.steps().size() && !outcome.cancelled; ++i) {
-        const Step& step = route.steps()[i];
-        End         end  = End::kCancelled;
-        if (!cancelled()) {
-            switch (step.kind) {
-            case Step::Kind::kMove: {
-                const MovePlan& move_plan = whole.moves[next_move++];
-                end = move(move_plan, done, whole.length);
-                done += move_plan.path.length();
-                break;
-            }
-            case Step::Kind::kTurn: end = turn(step); break;
-            case Step::Kind::kWait: end = wait(step); break;
-            }
-        }
-        if (end == End::kCancelled) {
-            outcome.cancelled = true;
-        } else if (end == End::kTimedOut) {
-            ++outcome.timed_out;
-            if (outcome.first_timed_out < 0) {
-                outcome.first_timed_out = static_cast<int>(i);
-            }
+        const Step&     s         = route.steps()[i];
+        const MovePlan* move_plan = s.kind == Step::Kind::kMove ? &whole.moves[next_move++] : nullptr;
+        record(step(s, move_plan, done, whole.length), i, outcome);
+        if (move_plan != nullptr) {
+            done += move_plan->path.length();
         }
     }
     drive_->stop();
@@ -95,6 +74,62 @@ Outcome Pipeline::run(const Route& route) {
         report(1.0);
     }
     return outcome;
+}
+
+Outcome Pipeline::runStep(const Route& route, const Plan& plan, std::size_t index) {
+    Outcome outcome;
+    if (index >= route.steps().size()) {
+        return outcome;
+    }
+    std::size_t move_index = 0; // moves before this step
+    for (std::size_t i = 0; i < index; ++i) {
+        move_index += route.steps()[i].kind == Step::Kind::kMove ? 1 : 0;
+    }
+    const Step&     s         = route.steps()[index];
+    const MovePlan* move_plan = nullptr;
+    if (s.kind == Step::Kind::kMove) {
+        if (move_index >= plan.moves.size()) {
+            return outcome; // plan is not from this route
+        }
+        move_plan = &plan.moves[move_index];
+    }
+    report(0.0);
+    const double length = move_plan != nullptr ? move_plan->path.length() : 0.0;
+    record(step(s, move_plan, 0, length), index, outcome);
+    drive_->stop();
+    if (!outcome.cancelled) {
+        report(1.0);
+    }
+    return outcome;
+}
+
+Pipeline::End Pipeline::step(const Step& s, const MovePlan* move_plan, double done, double total) {
+    if (cancelled()) {
+        return End::kCancelled;
+    }
+    switch (s.kind) {
+    case Step::Kind::kMove: return move(*move_plan, done, total);
+    case Step::Kind::kTurn: return turn(s);
+    case Step::Kind::kWait: return wait(s);
+    }
+    return End::kCancelled;
+}
+
+void Pipeline::record(End end, std::size_t index, Outcome& outcome) {
+    if (end == End::kCancelled) {
+        outcome.cancelled = true;
+    } else if (end == End::kTimedOut) {
+        ++outcome.timed_out;
+        if (outcome.first_timed_out < 0) {
+            outcome.first_timed_out = static_cast<int>(index);
+        }
+    }
+}
+
+void Pipeline::report(double fraction) {
+    if (io_.progress) {
+        io_.progress(fraction);
+    }
 }
 
 Pipeline::End Pipeline::move(const MovePlan& plan, double done, double total) {

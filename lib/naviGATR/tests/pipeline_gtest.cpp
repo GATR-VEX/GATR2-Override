@@ -172,5 +172,71 @@ TEST(Pipeline, CancelStopsTheRouteAndTheDrive) {
     EXPECT_DOUBLE_EQ(robot.speeds.forward, 0);
 }
 
+TEST(Pipeline, StepsRunOneAtATimeWithWorkBetween) {
+    SimRobot robot;
+    Pipeline pipeline(config(robot), robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    const Route route = Route({0, 0, 0}).line({24, 0}).turnTo(90).line({24, 36});
+    const Plan  plan  = pipeline.plan(route);
+
+    std::vector<Pose> between;
+    for (std::size_t i = 0; i < route.steps().size(); ++i) {
+        EXPECT_TRUE(pipeline.runStep(route, plan, i).ok());
+        EXPECT_DOUBLE_EQ(robot.speeds.forward, 0); // stopped after each step
+        between.push_back(robot.pose);
+        robot.sleepUntil(robot.now_ms + 500); // scoring, nothing moving
+    }
+    ASSERT_EQ(between.size(), 3u);
+    EXPECT_NEAR(between[0].x, 24, 1.0);
+    EXPECT_NEAR(wrap180(between[1].heading - 90), 0, 2.0);
+    EXPECT_NEAR(between[2].x, 24, 1.0);
+    EXPECT_NEAR(between[2].y, 36, 1.0);
+}
+
+TEST(Pipeline, StepProgressCoversThatStepOnly) {
+    SimRobot            robot;
+    std::vector<double> seen;
+    Io                  io = robot.io();
+    io.progress            = [&](double f) { seen.push_back(f); };
+    double half_way        = -1;
+    Pipeline pipeline(config(robot), io);
+    ASSERT_TRUE(pipeline.begin());
+    const Route route = Route({0, 0, 0}).line({24, 0}).turnTo(90).line({24, 72}).at(
+        0.5, [&] { half_way = seen.back(); });
+    const Plan plan = pipeline.plan(route);
+    pipeline.runStep(route, plan, 0);
+    pipeline.runStep(route, plan, 1);
+    seen.clear();
+    EXPECT_TRUE(pipeline.runStep(route, plan, 2).ok());
+    ASSERT_FALSE(seen.empty());
+    EXPECT_DOUBLE_EQ(seen.front(), 0);
+    EXPECT_DOUBLE_EQ(seen.back(), 1);
+    EXPECT_NEAR(half_way, 0.5, 0.05); // half of this 72 in line, not of the route
+}
+
+TEST(Pipeline, StepPastTheEndDoesNothing) {
+    SimRobot robot;
+    Pipeline pipeline(config(robot), robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    const Route route = Route({0, 0, 0}).line({24, 0});
+    const Plan  plan  = pipeline.plan(route);
+    pipeline.runStep(route, plan, 1);
+    EXPECT_EQ(robot.applies, 0);
+    EXPECT_EQ(robot.now_ms, 0u);
+}
+
+TEST(Pipeline, TimedOutStepReportsItsIndex) {
+    SimRobot robot;
+    robot.stuck             = true;
+    Config c                = config(robot);
+    c.tolerances.timeout_ms = 200;
+    Pipeline pipeline(c, robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    const Route   route   = Route({0, 0, 0}).wait(10).line({24, 0});
+    const Outcome outcome = pipeline.runStep(route, pipeline.plan(route), 1);
+    EXPECT_EQ(outcome.timed_out, 1u);
+    EXPECT_EQ(outcome.first_timed_out, 1);
+}
+
 } // namespace
 } // namespace navigatr
