@@ -27,8 +27,12 @@ void disabled() {}
 
 void competition_initialize() {}
 
-// First test: 24 in forward, then face left.
-navigatr::Route autonRoute() { return navigatr::Route(kStart).line({47.4, 23.4}).turnTo(90); }
+navigatr::Route autonRoute() {
+    return navigatr::Route({7.5, 69.5, 0})
+        .bezier({66, 66}, {39, 99}, {53.5, 109.5})
+        .bezier({79.5, 134.5}, {97, 77.5}, {116.5, 70})
+        .facing(180);
+}
 
 // The robot must sit at the route's start pose: the pose is reset to it.
 void startAuton() {
