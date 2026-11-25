@@ -47,6 +47,7 @@ add_library(locagatr STATIC
     src/processors/wheel_pair_processor.cpp
     src/processors/drive_motor_processor.cpp
     src/estimators/odometry_estimator.cpp
+    src/log/log_row.cpp
     ${GATR2_ELECTRONICS}/brain/locaGATR/src/link.cpp
     ${GATR2_ELECTRONICS}/pico/locaGATR/src/brainlink/wire.cpp
     ${GATR2_ELECTRONICS}/pico/locaGATR/src/records/encoder.cpp
@@ -69,6 +70,7 @@ set(LOCAGATR_TEST_SOURCES
     tests/processors/processors_gtest.cpp
     tests/estimators/odometry_estimator_gtest.cpp
     tests/slot_gtest.cpp
+    tests/log/log_gtest.cpp
 )
 
 add_executable(locagatr_tests ${LOCAGATR_TEST_SOURCES})

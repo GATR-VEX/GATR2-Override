@@ -92,6 +92,7 @@ sources     VEX IMU: ok | control board: FAILED | motor encoders: ok
 processors  tracking wheels: ok | wheel pair: off | IMU: ok | drive: ok
 estimator   odometry: waiting for "back"
 board       not streaming, 0 frames, 0 dropped, 0 unhandled records
+log         /usd/run007.csv, 412 rows, 0 dropped
 motion      IMU yaw 91.2 pitch 0.4 roll -0.1 | drive fwd 12.00 lat 0.10
 pose        x 12.30 y 0.40 heading 91.2
 ticks       412, 0 overruns
@@ -99,6 +100,30 @@ ticks       412, 0 overruns
 
 `FAILED`: could not begin (bad port, missing config). `off`: disabled.
 Don't print it while spectaGATR runs; both use the same serial output.
+
+## Log
+
+`c.log = true;` writes every tick to the Brain's microSD card, a new file
+each program run: `/usd/run001.csv`, `run002.csv`, ... Without a card the
+robot runs as usual, `start()` returns false and the status says so.
+
+One row per tick, the raw readings before processing plus the pose it
+published:
+
+| Columns | Holds |
+|---|---|
+| `t_us` | Tick time, Brain microseconds |
+| `board_open`, `board_fresh`, `board_restarted`, `board_frames`, `board_dropped` | Control board link |
+| `tw0` to `tw7` | Encoder counts by board connector |
+| `m1` to `m21` | Motor degrees by Smart Port |
+| `imu_rotation`, `imu_pitch`, `imu_roll`, `imu_gyro_*`, `imu_accel_*` | IMU sample |
+| `x`, `y`, `heading`, `pitch`, `roll` | The published pose |
+| `set_x`, `set_y`, `set_heading` | A `setPose()` that took effect before this tick |
+
+An empty cell means no reading. Rows are written twice a second from a low
+priority task, so the Localizer never waits on the card and a power cut
+loses about the last 0.5 s. If the card falls behind for more than 2.5 s,
+rows are dropped and counted. At 100 Hz a two minute run is about 3 MB.
 
 ## Faults
 
@@ -144,5 +169,6 @@ ctest --test-dir build-locagatr --output-on-failure
 
 ## Status
 
-44 host tests, builds with PROS 4.2.2. Not run on a robot. Motor counts per
+52 host tests, builds with PROS 4.2.2. Runs on the 2026-27 robot; the log is
+not yet run on a Brain. Motor counts per
 turn (1800, 900, 300 by cartridge) are from the PROS docs, unchecked.

@@ -23,13 +23,18 @@ bool Localizer::start() {
     if (!started_.compare_exchange_strong(expected, 1)) {
         return expected == 1 && start_ok_;
     }
-    const bool begun   = pipeline_.begin(); // sets the start pose too
+    const bool begun  = pipeline_.begin(); // sets the start pose too
+    bool       log_ok = true;
+    if (config_.log) {
+        log_   = std::make_unique<RunLog>();
+        log_ok = log_->start();
+    }
     const bool task_ok =pros::c::task_create(&Localizer::taskEntry, this, TASK_PRIORITY_DEFAULT + 1,
                                               TASK_STACK_DEPTH_DEFAULT, kTaskName) != nullptr;
     if (!task_ok) {
         started_.store(-1);
     }
-    start_ok_ = begun && task_ok;
+    start_ok_ = begun && log_ok && task_ok;
     return start_ok_;
 }
 
@@ -69,7 +74,13 @@ void Localizer::setPose(double x, double y, double heading) {
     setPose(pose);
 }
 
-Status Localizer::getStatus() const { return snapshot().status; }
+Status Localizer::getStatus() const {
+    Status status = snapshot().status;
+    if (log_) {
+        status.log = log_->status();
+    }
+    return status;
+}
 
 std::string Localizer::describe() const { return locagatr::describe(config_, getStatus()); }
 
@@ -85,12 +96,21 @@ void Localizer::run() {
     while (true) {
         const uint32_t version = pose_request_.version();
         Pose           requested;
-        if (version != seen && pose_request_.load(requested)) {
+        const bool     set = version != seen && pose_request_.load(requested);
+        if (set) {
             pipeline_.setPose(requested);
             seen = version;
         }
 
         const Tick tick = pipeline_.tick(pros::micros());
+        if (log_) {
+            LogRow row;
+            row.sensors  = tick.sensors;
+            row.pose     = tick.estimate.pose;
+            row.pose_set = set;
+            row.set      = requested;
+            log_->push(row);
+        }
 
         s.pose            = tick.estimate.pose;
         s.status.sensors  = tick.sensors;

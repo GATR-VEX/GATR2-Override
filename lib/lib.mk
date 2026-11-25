@@ -44,7 +44,9 @@ GATR2_LIB_SRC_locagatr := \
 	$(GATR2_LIB_ROOT)/locaGATR/src/processors/wheel_pair_processor.cpp \
 	$(GATR2_LIB_ROOT)/locaGATR/src/processors/drive_motor_processor.cpp \
 	$(GATR2_LIB_ROOT)/locaGATR/src/estimators/odometry_estimator.cpp \
+	$(GATR2_LIB_ROOT)/locaGATR/src/log/log_row.cpp \
 	$(GATR2_LIB_ROOT)/locaGATR/pros/localizer.cpp \
+	$(GATR2_LIB_ROOT)/locaGATR/pros/log/run_log.cpp \
 	$(GATR2_LIB_ROOT)/locaGATR/pros/sources/vex_imu_source.cpp \
 	$(GATR2_LIB_ROOT)/locaGATR/pros/sources/motor_encoder_source.cpp
 

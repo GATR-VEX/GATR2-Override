@@ -8,9 +8,11 @@
 #pragma once
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "locagatr/config.h"
+#include "locagatr/log/run_log.h"
 #include "locagatr/pipeline.h"
 #include "locagatr/slot.h"
 
@@ -27,6 +29,7 @@ struct Status {
     bool      estimator_running  = false;
     uint32_t  ticks              = 0;
     uint32_t  overruns           = 0; // ticks that took longer than 1 / rate_hz
+    LogStatus log;                    // Config::log
 };
 
 class Localizer {
@@ -36,7 +39,7 @@ class Localizer {
     Localizer& operator=(const Localizer&) = delete;
 
     // From initialize(). Blocks while the IMU calibrates. False if anything
-    // failed to begin; the rest still run.
+    // failed to begin, the log included; the rest still run.
     bool start();
 
     Pose   getPose() const;
@@ -68,6 +71,7 @@ class Localizer {
     Config           config_;
     Pipeline         pipeline_;
     Slot<Snapshot>   snapshot_;
+    std::unique_ptr<RunLog> log_; // made in start() when Config::log
     Slot<Pose>            pose_request_;
     std::atomic<uint32_t> pose_applied_{0}; // pose_request_ version published
     std::atomic<int>      started_{0};      // 0 not yet, 1 started, -1 failed

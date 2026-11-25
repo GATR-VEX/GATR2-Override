@@ -75,6 +75,17 @@ void run(void*) {
                       estimate.missing != nullptr ? estimate.missing : "");
         line(4, text);
 
+        const locagatr::LogStatus& log = status.log;
+        if (log.writing) {
+            std::snprintf(text, sizeof text, "log run%03u  %lu rows  %lu dropped",
+                          static_cast<unsigned>(log.number), static_cast<unsigned long>(log.rows),
+                          static_cast<unsigned long>(log.dropped));
+        } else {
+            std::snprintf(text, sizeof text, "log %s", log.number == 0 ? "off or no SD card"
+                                                                      : "STOPPED, write failed");
+        }
+        line(5, text);
+
         // Controller: one row per tick, it takes no more than one print per 50 ms.
         switch (tick++ % 3) {
         case 0: controller.print(0, 0, "x%6.1f y%6.1f   ", pose.x, pose.y); break;

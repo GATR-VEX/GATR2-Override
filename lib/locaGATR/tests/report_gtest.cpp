@@ -59,5 +59,20 @@ TEST(Report, EstimatorStates) {
     EXPECT_TRUE(has(describe(Config{}, s), "odometry: tracking"));
 }
 
+TEST(Report, LogStates) {
+    Config c;
+    Status s;
+    EXPECT_TRUE(has(describe(c, s), "log         off"));
+    c.log = true;
+    EXPECT_TRUE(has(describe(c, s), "log         FAILED: no SD card"));
+    s.log.writing = true;
+    s.log.number  = 7;
+    s.log.rows    = 1234;
+    s.log.dropped = 2;
+    EXPECT_TRUE(has(describe(c, s), "log         /usd/run007.csv, 1234 rows, 2 dropped"));
+    s.log.writing = false;
+    EXPECT_TRUE(has(describe(c, s), "log         STOPPED: a write to /usd/run007.csv failed"));
+}
+
 } // namespace
 } // namespace locagatr

@@ -49,6 +49,8 @@ locagatr::Config config() {
     c.odometry.lateral  = "back";
     c.odometry.yaw      = "IMU";
     c.odometry.attitude = "IMU";
+
+    c.log = true; // /usd/runNNN.csv, a new file each run
     return c;
 }
 
