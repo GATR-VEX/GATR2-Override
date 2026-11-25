@@ -12,12 +12,14 @@
 #include <string>
 
 #include "locagatr/config.h"
-#include "locagatr/log/run_log.h"
+#include "locagatr/log/log_status.h"
 #include "locagatr/pipeline.h"
 #include "locagatr/slot.h"
 
 namespace locagatr
 {
+
+class RunLog;
 
 // The last tick.
 struct Status {
@@ -29,17 +31,18 @@ struct Status {
     bool      estimator_running  = false;
     uint32_t  ticks              = 0;
     uint32_t  overruns           = 0; // ticks that took longer than 1 / rate_hz
-    LogStatus log;                    // Config::log
+    LogStatus log;                    // startLog()
 };
 
 class Localizer {
   public:
-    explicit Localizer(const Config& config) : config_(config), pipeline_(config) {}
+    explicit Localizer(const Config& config);
+    ~Localizer();
     Localizer(const Localizer&)            = delete;
     Localizer& operator=(const Localizer&) = delete;
 
     // From initialize(). Blocks while the IMU calibrates. False if anything
-    // failed to begin, the log included; the rest still run.
+    // failed to begin; the rest still run.
     bool start();
 
     Pose   getPose() const;
@@ -52,6 +55,14 @@ class Localizer {
     // Waits about one tick, until getPose() returns it. Pitch and roll are not set.
     void setPose(const Pose& pose);
     void setPose(double x, double y, double heading);
+
+    // Every tick from now on to a new file on the microSD card,
+    // /usd/runNNN.csv; see log/run_log.h. After start(). False: no card, or
+    // the file could not be made (getStatus().log.error says which).
+    bool startLog();
+    // Writes the rest and closes the file. Returns once it is complete.
+    void stopLog();
+    bool isLogging() const;
 
     Status getStatus() const;
 
@@ -68,14 +79,14 @@ class Localizer {
     void        run();
     Snapshot    snapshot() const;
 
-    Config           config_;
-    Pipeline         pipeline_;
-    Slot<Snapshot>   snapshot_;
-    std::unique_ptr<RunLog> log_; // made in start() when Config::log
-    Slot<Pose>            pose_request_;
-    std::atomic<uint32_t> pose_applied_{0}; // pose_request_ version published
-    std::atomic<int>      started_{0};      // 0 not yet, 1 started, -1 failed
-    bool             start_ok_ = false;
+    Config                  config_;
+    Pipeline                pipeline_;
+    Slot<Snapshot>          snapshot_;
+    std::unique_ptr<RunLog> log_; // made in start()
+    Slot<Pose>              pose_request_;
+    std::atomic<uint32_t>   pose_applied_{0}; // pose_request_ version published
+    std::atomic<int>        started_{0};      // 0 not yet, 1 started, -1 failed
+    bool                    start_ok_ = false;
 };
 
 } // namespace locagatr

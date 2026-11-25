@@ -4,10 +4,8 @@
 #include "locagatr/log/run_log.h"
 
 #include <cstdio>
-#include <string>
 
 #include "pros/misc.h"
-#include "pros/rtos.hpp"
 
 namespace locagatr
 {
@@ -40,25 +38,55 @@ bool write(const char* path, const std::string& text, const char* mode) {
 } // namespace
 
 bool RunLog::start() {
-    if (pros::c::usd_is_installed() != 1) {
-        return false;
+    mutex_.take();
+    if (writing_.load()) {
+        mutex_.give();
+        return true;
     }
-    for (int n = 1; n <= kMaxFiles && number_ == 0; ++n) {
+    error_.store(nullptr);
+    if (pros::c::usd_is_installed() != 1) {
+        return fail("no SD card");
+    }
+
+    int number = 0;
+    for (int n = 1; n <= kMaxFiles && number == 0; ++n) {
         std::snprintf(path_, sizeof path_, "/usd/run%03d.csv", n);
         if (!exists(path_)) {
-            number_ = static_cast<uint16_t>(n);
+            number = n;
         }
     }
-    if (number_ == 0 || !write(path_, logHeader(), "w")) {
-        return false;
+    if (number == 0) {
+        return fail("run001 to run999 all used");
     }
+    if (!write(path_, logHeader(), "w")) {
+        return fail("could not create the file");
+    }
+    if (!task_started_) {
+        task_started_ = pros::c::task_create(&RunLog::taskEntry, this, TASK_PRIORITY_MIN + 1,
+                                             TASK_STACK_DEPTH_DEFAULT, "locagatr log") != nullptr;
+        if (!task_started_) {
+            return fail("no task");
+        }
+    }
+
+    LogRow stale; // pushed while the last file was closing
+    while (queue_.pop(stale)) {
+    }
+    number_.store(static_cast<uint16_t>(number));
+    rows_.store(0);
+    dropped_.store(0);
     writing_.store(true);
-    if (pros::c::task_create(&RunLog::taskEntry, this, TASK_PRIORITY_MIN + 1,
-                             TASK_STACK_DEPTH_DEFAULT, "locagatr log") == nullptr) {
-        writing_.store(false);
-        return false;
-    }
+    mutex_.give();
     return true;
+}
+
+void RunLog::stop() {
+    mutex_.take();
+    if (writing_.load()) {
+        writing_.store(false);
+        flush();
+    }
+    mutex_.give();
 }
 
 void RunLog::push(const LogRow& row) {
@@ -70,31 +98,48 @@ void RunLog::push(const LogRow& row) {
 LogStatus RunLog::status() const {
     LogStatus s;
     s.writing = writing_.load();
-    s.number  = number_;
+    s.number  = number_.load();
     s.rows    = rows_.load();
     s.dropped = dropped_.load();
+    s.error   = error_.load();
     return s;
 }
 
-void RunLog::run() {
-    std::string text;
-    LogRow      row;
-    uint32_t    next = pros::millis();
-    while (writing_.load()) {
-        text.clear();
-        uint32_t rows = 0;
-        while (queue_.pop(row)) {
-            appendLogRow(row, text);
-            ++rows;
-        }
-        if (rows > 0 && !write(path_, text, "a")) {
-            writing_.store(false); // card pulled or full
-            break;
-        }
+bool RunLog::fail(const char* error) {
+    error_.store(error);
+    mutex_.give();
+    return false;
+}
+
+void RunLog::flush() {
+    text_.clear();
+    uint32_t rows = 0;
+    LogRow   row;
+    while (queue_.pop(row)) {
+        appendLogRow(row, text_);
+        ++rows;
+    }
+    if (rows == 0) {
+        return;
+    }
+    if (write(path_, text_, "a")) {
         rows_.fetch_add(rows);
+    } else {
+        writing_.store(false); // card pulled or full
+        error_.store("a write failed");
+    }
+}
+
+void RunLog::run() {
+    uint32_t next = pros::millis();
+    while (true) {
+        mutex_.take();
+        if (writing_.load()) {
+            flush();
+        }
+        mutex_.give();
         pros::c::task_delay_until(&next, kWriteMs);
     }
-    pros::c::task_delete(nullptr);
 }
 
 } // namespace locagatr

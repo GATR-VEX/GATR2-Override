@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "locagatr/log/run_log.h"
 #include "locagatr/report.h"
 #include "pros/rtos.hpp"
 
@@ -18,25 +19,35 @@ constexpr char kTaskName[] = "locagatr";
 
 } // namespace
 
+Localizer::Localizer(const Config& config) : config_(config), pipeline_(config) {}
+
+Localizer::~Localizer() = default;
+
 bool Localizer::start() {
     int expected = 0;
     if (!started_.compare_exchange_strong(expected, 1)) {
         return expected == 1 && start_ok_;
     }
-    const bool begun  = pipeline_.begin(); // sets the start pose too
-    bool       log_ok = true;
-    if (config_.log) {
-        log_   = std::make_unique<RunLog>();
-        log_ok = log_->start();
-    }
+    const bool begun = pipeline_.begin(); // sets the start pose too
+    log_             = std::make_unique<RunLog>();
     const bool task_ok =pros::c::task_create(&Localizer::taskEntry, this, TASK_PRIORITY_DEFAULT + 1,
                                               TASK_STACK_DEPTH_DEFAULT, kTaskName) != nullptr;
     if (!task_ok) {
         started_.store(-1);
     }
-    start_ok_ = begun && log_ok && task_ok;
+    start_ok_ = begun && task_ok;
     return start_ok_;
 }
+
+bool Localizer::startLog() { return log_ && log_->start(); }
+
+void Localizer::stopLog() {
+    if (log_) {
+        log_->stop();
+    }
+}
+
+bool Localizer::isLogging() const { return log_ && log_->status().writing; }
 
 Localizer::Snapshot Localizer::snapshot() const {
     Snapshot s;

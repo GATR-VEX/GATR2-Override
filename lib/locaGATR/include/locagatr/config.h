@@ -43,7 +43,6 @@ struct Config {
     Estimator*                      estimator = nullptr; // null: OdometryEstimator
     OdometrySources                 odometry;
     Robot                           robot;
-    bool                            log = false; // every tick to the microSD card, log/run_log.h
 };
 
 } // namespace locagatr

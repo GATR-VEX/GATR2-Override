@@ -76,13 +76,15 @@ void run(void*) {
         line(4, text);
 
         const locagatr::LogStatus& log = status.log;
-        if (log.writing) {
-            std::snprintf(text, sizeof text, "log run%03u  %lu rows  %lu dropped",
-                          static_cast<unsigned>(log.number), static_cast<unsigned long>(log.rows),
-                          static_cast<unsigned long>(log.dropped));
+        if (log.error != nullptr) {
+            std::snprintf(text, sizeof text, "log FAILED: %s", log.error);
+        } else if (log.number == 0) {
+            std::snprintf(text, sizeof text, "log off");
         } else {
-            std::snprintf(text, sizeof text, "log %s", log.number == 0 ? "off or no SD card"
-                                                                      : "STOPPED, write failed");
+            std::snprintf(text, sizeof text, "log %s run%03u  %lu rows  %lu dropped",
+                          log.writing ? "ON" : "done", static_cast<unsigned>(log.number),
+                          static_cast<unsigned long>(log.rows),
+                          static_cast<unsigned long>(log.dropped));
         }
         line(5, text);
 

@@ -60,18 +60,21 @@ TEST(Report, EstimatorStates) {
 }
 
 TEST(Report, LogStates) {
-    Config c;
-    Status s;
-    EXPECT_TRUE(has(describe(c, s), "log         off"));
-    c.log = true;
-    EXPECT_TRUE(has(describe(c, s), "log         FAILED: no SD card"));
+    const Config c;
+    Status       s;
+    EXPECT_TRUE(has(describe(c, s), "log         off\n"));
+    s.log.error = "no SD card";
+    EXPECT_TRUE(has(describe(c, s), "log         FAILED: no SD card\n"));
+    s.log.error   = nullptr;
     s.log.writing = true;
     s.log.number  = 7;
     s.log.rows    = 1234;
     s.log.dropped = 2;
-    EXPECT_TRUE(has(describe(c, s), "log         /usd/run007.csv, 1234 rows, 2 dropped"));
+    EXPECT_TRUE(has(describe(c, s), "log         writing, /usd/run007.csv, 1234 rows, 2 dropped"));
     s.log.writing = false;
-    EXPECT_TRUE(has(describe(c, s), "log         STOPPED: a write to /usd/run007.csv failed"));
+    EXPECT_TRUE(has(describe(c, s), "log         stopped, /usd/run007.csv, 1234 rows"));
+    s.log.error = "a write failed";
+    EXPECT_TRUE(has(describe(c, s), "log         FAILED: a write failed, /usd/run007.csv"));
 }
 
 } // namespace

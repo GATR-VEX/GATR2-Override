@@ -42,8 +42,10 @@ void startAuton() {
 }
 
 void autonomous() {
+    localizer.startLog();
     startAuton();
     navigator.wait();
+    localizer.stopLog();
 }
 
 void opcontrol() {
@@ -54,13 +56,20 @@ void opcontrol() {
     pros::MotorGroup rl_mg({3, -4}); // rear left
     pros::MotorGroup rr_mg({-7, 8}); // rear right
 
+    bool logging_route = false;
     while (true) {
         // A runs the auton route, B stops it. The sticks do nothing meanwhile.
+        // Each run is logged to its own file.
         if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) && !navigator.isRunning()) {
+            logging_route = localizer.startLog();
             startAuton();
         }
         if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
             navigator.cancel();
+        }
+        if (logging_route && !navigator.isRunning()) {
+            localizer.stopLog();
+            logging_route = false;
         }
         if (navigator.isRunning()) {
             pros::delay(20);

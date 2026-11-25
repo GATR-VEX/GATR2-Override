@@ -38,6 +38,7 @@ Needs GATR2-Electronics next to this repo for the control board link
 | `getHeading()` | Degrees counterclockwise from +x, 0 to 360 |
 | `getPitch()`, `getRoll()` | Degrees |
 | `setPose(x, y, heading)` | Sets the pose. Waits about one tick |
+| `startLog()`, `stopLog()`, `isLogging()` | Every tick to a file on the microSD card, see [Log](#log) |
 | `getStatus()` | Last tick: raw readings, measurements, estimate, what runs |
 | `describe()` | The status as text |
 
@@ -92,7 +93,7 @@ sources     VEX IMU: ok | control board: FAILED | motor encoders: ok
 processors  tracking wheels: ok | wheel pair: off | IMU: ok | drive: ok
 estimator   odometry: waiting for "back"
 board       not streaming, 0 frames, 0 dropped, 0 unhandled records
-log         /usd/run007.csv, 412 rows, 0 dropped
+log         writing, /usd/run007.csv, 412 rows, 0 dropped
 motion      IMU yaw 91.2 pitch 0.4 roll -0.1 | drive fwd 12.00 lat 0.10
 pose        x 12.30 y 0.40 heading 91.2
 ticks       412, 0 overruns
@@ -103,9 +104,18 @@ Don't print it while spectaGATR runs; both use the same serial output.
 
 ## Log
 
-`c.log = true;` writes every tick to the Brain's microSD card, a new file
-each program run: `/usd/run001.csv`, `run002.csv`, ... Without a card the
-robot runs as usual, `start()` returns false and the status says so.
+```cpp
+void autonomous() {
+    localizer.startLog(); // a new file: /usd/run001.csv, run002.csv, ...
+    // run the route
+    localizer.stopLog();  // returns once the file is complete
+}
+```
+
+Anywhere after `start()`, from any task. `startLog()` returns false without
+a microSD card, and `getStatus().log.error` says why; the robot runs as
+usual either way. Stopping the program without `stopLog()` is fine: the file
+is closed between writes, so only the last 0.5 s or so is lost.
 
 One row per tick, the raw readings before processing plus the pose it
 published:
@@ -121,9 +131,9 @@ published:
 | `set_x`, `set_y`, `set_heading` | A `setPose()` that took effect before this tick |
 
 An empty cell means no reading. Rows are written twice a second from a low
-priority task, so the Localizer never waits on the card and a power cut
-loses about the last 0.5 s. If the card falls behind for more than 2.5 s,
-rows are dropped and counted. At 100 Hz a two minute run is about 3 MB.
+priority task, so the Localizer never waits on the card. If the card falls
+behind for more than 2.5 s, rows are dropped and counted. At 100 Hz a two
+minute run is about 3 MB.
 
 ## Faults
 

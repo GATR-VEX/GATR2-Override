@@ -65,18 +65,19 @@ std::string describe(const Config& config, const Status& status) {
     out += '\n';
 
     const LogStatus& log = status.log;
-    if (!config.log) {
-        out += "log         off\n";
+    out += "log         ";
+    if (log.error != nullptr) {
+        add(out, "FAILED: %s", log.error);
     } else if (log.writing) {
-        add(out, "log         /usd/run%03u.csv, %lu rows, %lu dropped\n",
-            static_cast<unsigned>(log.number), static_cast<unsigned long>(log.rows),
-            static_cast<unsigned long>(log.dropped));
-    } else if (log.number == 0) {
-        out += "log         FAILED: no SD card, or run001 to run999 all used\n";
+        out += "writing";
     } else {
-        add(out, "log         STOPPED: a write to /usd/run%03u.csv failed after %lu rows\n",
-            static_cast<unsigned>(log.number), static_cast<unsigned long>(log.rows));
+        out += log.number == 0 ? "off" : "stopped";
     }
+    if (log.number != 0) {
+        add(out, ", /usd/run%03u.csv, %lu rows, %lu dropped", static_cast<unsigned>(log.number),
+            static_cast<unsigned long>(log.rows), static_cast<unsigned long>(log.dropped));
+    }
+    out += '\n';
 
     out += "motion      ";
     if (status.motion.count == 0) {
