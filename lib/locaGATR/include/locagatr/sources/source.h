@@ -28,11 +28,10 @@ struct ImuSample {
 
 struct BoardStatus {
     bool     port_open           = false; // the Smart Port is open; retried until it is
-    bool     fresh               = false; // the board is answering
+    bool     fresh               = false; // frames are arriving
     bool     restarted           = false; // its counts started over this tick
-    uint32_t requests            = 0;
-    uint32_t replies             = 0;
-    uint32_t timeouts            = 0;
+    uint32_t frames              = 0;     // good frames, since start
+    uint32_t dropped             = 0;     // frames lost on the way, since start
     uint32_t unhandled_records   = 0; // records with no decoder, since start
     uint8_t  last_unhandled_type = 0;
     uint8_t  last_unhandled_port = 0;

@@ -91,7 +91,7 @@ c.odometry.attitude = "IMU";
 sources     VEX IMU: ok | control board: FAILED | motor encoders: ok
 processors  tracking wheels: ok | wheel pair: off | IMU: ok | drive: ok
 estimator   odometry: waiting for "back"
-board       not answering, 0/412 replies, 0 unhandled records
+board       not streaming, 0 frames, 0 dropped, 0 unhandled records
 motion      IMU yaw 91.2 pitch 0.4 roll -0.1 | drive fwd 12.00 lat 0.10
 pose        x 12.30 y 0.40 heading 91.2
 ticks       412, 0 overruns
@@ -104,7 +104,8 @@ Don't print it while spectaGATR runs; both use the same serial output.
 
 | Fault | Result |
 |---|---|
-| Board misses replies | Nothing lost, caught up on the next reply |
+| Board frames lost | Nothing lost, caught up on the next frame; counted in `dropped` |
+| Board port fails to open | Retried about every 0.5 s; status says `port not open` |
 | Board restarts | Totals carry on; motion during the restart is lost |
 | Chosen measurement missing | x and y hold, then take the whole change. `estimate.missing` names it |
 | Yaw missing | Heading holds |
@@ -120,8 +121,8 @@ Don't print it while spectaGATR runs; both use the same serial output.
 | `offset` | Turn in place 10 times, adjust until x and y return |
 | `drive` | Drive a measured distance, compare `"drive"` in the status |
 
-Each tick waits for the board: about 5 ms at 115200 baud with three
-encoders, so 100 Hz at most. `overruns` counts slow ticks.
+The board streams on its own, so a tick never waits for it: it reads what has
+arrived and keeps the newest frame. `overruns` counts slow ticks.
 
 ## Adding an implementation
 

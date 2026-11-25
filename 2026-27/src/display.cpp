@@ -59,10 +59,9 @@ void run(void*) {
         line(1, text);
 
         const char* link = !board.port_open ? "NO PORT" : board.fresh ? "ok" : "QUIET";
-        std::snprintf(text, sizeof text, "board %s  req %lu  rep %lu  timeout %lu",
-                      link, static_cast<unsigned long>(board.requests),
-                      static_cast<unsigned long>(board.replies),
-                      static_cast<unsigned long>(board.timeouts));
+        std::snprintf(text, sizeof text, "board %s  frames %lu  dropped %lu", link,
+                      static_cast<unsigned long>(board.frames),
+                      static_cast<unsigned long>(board.dropped));
         line(2, text);
 
         if (sensors.imu) {

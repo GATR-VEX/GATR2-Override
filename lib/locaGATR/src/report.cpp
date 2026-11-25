@@ -54,10 +54,9 @@ std::string describe(const Config& config, const Status& status) {
     }
 
     const BoardStatus& board = status.sensors.board;
-    add(out, "board       %s, %lu/%lu replies, %lu unhandled records",
-        !board.port_open ? "port not open" : board.fresh ? "answering" : "not answering",
-        static_cast<unsigned long>(board.replies),
-        static_cast<unsigned long>(board.requests),
+    add(out, "board       %s, %lu frames, %lu dropped, %lu unhandled records",
+        !board.port_open ? "port not open" : board.fresh ? "streaming" : "not streaming",
+        static_cast<unsigned long>(board.frames), static_cast<unsigned long>(board.dropped),
         static_cast<unsigned long>(board.unhandled_records));
     if (board.unhandled_records > 0) {
         add(out, " (last: type 0x%02X port %u)", board.last_unhandled_type,

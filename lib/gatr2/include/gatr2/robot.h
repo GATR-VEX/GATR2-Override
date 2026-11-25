@@ -48,9 +48,8 @@ struct DriveMotors {
 struct Robot {
     uint8_t                    imu_port   = 0;      // VEX Inertial Sensor, 1..21
     uint8_t                    board_port = 0;      // Smart Port wired to the control board, 1..21
-    int32_t                    board_baud = 115200; // must match the board
-    // Longest wait for one board reply. Three encoders at 115200 take about 4.7 ms.
-    uint32_t                   board_reply_timeout_us = 7000;
+    int32_t                    board_baud = 921600; // must match the board
+    uint32_t                   board_stale_us = 20000; // no frame from the board for this long: not fresh
     std::vector<TrackingWheel> tracking_wheels;
     WheelPair                  wheel_pair;
     DriveMotors                drive;

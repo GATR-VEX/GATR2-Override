@@ -45,7 +45,7 @@ TEST(Report, SaysWhatRunsFailedAndIsOff) {
     EXPECT_TRUE(has(text, "VEX IMU: ok | control board: FAILED | motor encoders: off")) << text;
     EXPECT_TRUE(has(text, "processors  IMU: ok")) << text;
     EXPECT_TRUE(has(text, "estimator   odometry: waiting for \"back\"")) << text;
-    EXPECT_TRUE(has(text, "not answering")) << text;
+    EXPECT_TRUE(has(text, "not streaming")) << text;
     EXPECT_TRUE(has(text, "IMU yaw 91.2")) << text;
     EXPECT_TRUE(has(text, "x 12.50")) << text;
 }

@@ -23,10 +23,10 @@ bool ControlBoardSource::begin(const Config& config) {
     if (!buildTable() || config.robot.board_port < 1 || config.robot.board_port > 21) {
         return false;
     }
-    port_                    = config.robot.board_port;
-    baud_                    = config.robot.board_baud;
-    timing_                  = Timing{};
-    timing_.reply_timeout_us = config.robot.board_reply_timeout_us;
+    port_            = config.robot.board_port;
+    baud_            = config.robot.board_baud;
+    timing_          = Timing{};
+    timing_.stale_us = config.robot.board_stale_us;
     link_.reset();
     retry_in_ = 0;
     open();
@@ -55,7 +55,7 @@ void ControlBoardSource::read(SensorMap& sensors) {
         sensors.board.port_open = false;
         return;
     }
-    const Poll poll = link_->transact();
+    const Poll poll = link_->read();
     decode(poll, link_->stats(), sensors);
     sensors.board.port_open = true;
 }
@@ -64,11 +64,10 @@ void ControlBoardSource::decode(const Poll& poll, const LinkStats& stats, Sensor
     BoardStatus& board = sensors.board;
     board.fresh        = poll.fresh;
     board.restarted    = poll.restarted;
-    board.requests     = stats.requests;
-    board.replies      = stats.replies;
-    board.timeouts     = stats.timeouts;
+    board.frames       = stats.frames;
+    board.dropped      = stats.dropped;
 
-    if (poll.answered) {
+    if (poll.updated) {
         for (std::size_t i = 0; i < poll.readings.count; ++i) {
             const brainlink::Record& record  = poll.readings.records[i];
             const RecordDecoder*     decoder = by_type_[record.sensor_type];

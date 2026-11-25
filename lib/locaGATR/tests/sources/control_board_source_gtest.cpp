@@ -11,11 +11,10 @@
 namespace locagatr
 {
 
-int      g_open_failures = 0; // opens that fail before one works
-int      g_opens         = 0; // calls
-uint64_t g_now_us        = 0;
+int g_open_failures = 0; // opens that fail before one works
+int g_opens         = 0; // calls
 
-// A port that never answers, in fake time.
+// A port where nothing ever arrives.
 std::optional<Io> openSmartPort(uint8_t port, int32_t) {
     ++g_opens;
     if (port == 0 || g_open_failures > 0) {
@@ -23,10 +22,8 @@ std::optional<Io> openSmartPort(uint8_t port, int32_t) {
         return std::nullopt;
     }
     Io io;
-    io.write   = [](const uint8_t*, std::size_t) { return true; };
-    io.read    = [](uint8_t*, std::size_t) -> std::size_t { return 0; };
-    io.now_us  = [] { return g_now_us; };
-    io.wait_us = [](uint32_t us) { g_now_us += us; };
+    io.read   = [](uint8_t*, std::size_t) -> std::size_t { return 0; };
+    io.now_us = [] { return uint64_t{0}; };
     return io;
 }
 
@@ -37,7 +34,7 @@ constexpr uint8_t kOtherType = 0x42;
 
 using Decoders = std::vector<const RecordDecoder*>;
 
-// A READINGS answer as the Link hands it over.
+// A READINGS frame as the Link hands it over.
 Poll answer(std::initializer_list<brainlink::Record> records) {
     brainlink::ReadingsWriter writer(0x1234);
     for (const brainlink::Record& r : records) {
@@ -49,8 +46,8 @@ Poll answer(std::initializer_list<brainlink::Record> records) {
     scanner.feed(f.bytes.data(), f.size, [&](const brainlink::Message& m) {
         poll.readings = *brainlink::decodeReadings(m);
     });
-    poll.answered = true;
-    poll.fresh    = true;
+    poll.updated = true;
+    poll.fresh   = true;
     return poll;
 }
 
@@ -146,22 +143,24 @@ TEST(ControlBoardSource, PortThatFailsToOpenIsRetried) {
     EXPECT_EQ(g_opens, 2);
 
     m = SensorMap{};
-    board.read(m); // third try opens and polls
+    board.read(m); // third try opens and reads
     EXPECT_EQ(g_opens, 3);
     EXPECT_TRUE(m.board.port_open);
-    EXPECT_EQ(m.board.requests, 1u);
+    EXPECT_FALSE(m.board.fresh); // nothing has arrived
 }
 
-TEST(ControlBoardSource, UnansweredPollLeavesCountsEmpty) {
+TEST(ControlBoardSource, NoNewFrameLeavesCountsEmpty) {
     ControlBoardSource board;
     ASSERT_TRUE(board.buildTable());
     SensorMap m;
     LinkStats stats;
-    stats.timeouts = 4;
+    stats.frames  = 9;
+    stats.dropped = 4;
     board.decode(Poll{}, stats, m);
     EXPECT_FALSE(m.encoder_counts[0].has_value());
     EXPECT_FALSE(m.board.fresh);
-    EXPECT_EQ(m.board.timeouts, 4u);
+    EXPECT_EQ(m.board.frames, 9u);
+    EXPECT_EQ(m.board.dropped, 4u);
 }
 
 TEST(ControlBoardSource, EmptyRecordGivesNoCount) {

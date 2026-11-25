@@ -1,7 +1,8 @@
 // control_board_source.h
-// The control board: one GET_READINGS per tick, each record to the decoder for
-// its sensor type. Records with no decoder are counted in SensorMap::board. A
-// Smart Port that does not open is tried again every kRetryReads reads.
+// The control board: each tick, the newest frame it streamed, each record to
+// the decoder for its sensor type. Records with no decoder are counted in
+// SensorMap::board. A Smart Port that does not open is tried again every
+// kRetryReads reads.
 
 #pragma once
 #include <array>
