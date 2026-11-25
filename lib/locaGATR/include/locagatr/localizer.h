@@ -57,9 +57,11 @@ class Localizer {
     void setPose(double x, double y, double heading);
 
     // Every tick from now on to a new file on the microSD card,
-    // /usd/runNNN.csv; see log/run_log.h. After start(). False: no card, or
-    // the file could not be made (getStatus().log.error says which).
-    bool startLog();
+    // /usd/<name>NNN.csv: startLog("auton") makes auton001.csv, then
+    // auton002.csv. Name: 1 to 16 letters, digits, _ or -. After start().
+    // False: bad name, no card, or the file could not be made
+    // (getStatus().log.error says which).
+    bool startLog(const char* name);
     // Writes the rest and closes the file. Returns once it is complete.
     void stopLog();
     bool isLogging() const;

@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
+
 namespace locagatr
 {
 namespace
@@ -67,7 +69,7 @@ TEST(Report, LogStates) {
     EXPECT_TRUE(has(describe(c, s), "log         FAILED: no SD card\n"));
     s.log.error   = nullptr;
     s.log.writing = true;
-    s.log.number  = 7;
+    std::snprintf(s.log.file, sizeof s.log.file, "run007.csv");
     s.log.rows    = 1234;
     s.log.dropped = 2;
     EXPECT_TRUE(has(describe(c, s), "log         writing, /usd/run007.csv, 1234 rows, 2 dropped"));

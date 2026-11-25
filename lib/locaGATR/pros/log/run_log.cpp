@@ -4,7 +4,10 @@
 #include "locagatr/log/run_log.h"
 
 #include <cstdio>
+#include <cstring>
+#include <vector>
 
+#include "locagatr/log/log_name.h"
 #include "pros/misc.h"
 
 namespace locagatr
@@ -13,11 +16,11 @@ namespace locagatr
 namespace
 {
 
-constexpr uint32_t kWriteMs  = 500;
-constexpr int      kMaxFiles = 999;
+constexpr uint32_t    kWriteMs      = 500;
+constexpr std::size_t kListingBytes = 32 * 1024;
 
-bool exists(const char* path) {
-    std::FILE* file = std::fopen(path, "r");
+bool exists(const std::string& path) {
+    std::FILE* file = std::fopen(path.c_str(), "r");
     if (file == nullptr) {
         return false;
     }
@@ -26,8 +29,8 @@ bool exists(const char* path) {
 }
 
 // Open, write, close: the bytes are on the card once this returns.
-bool write(const char* path, const std::string& text, const char* mode) {
-    std::FILE* file = std::fopen(path, mode);
+bool write(const std::string& path, const std::string& text, const char* mode) {
+    std::FILE* file = std::fopen(path.c_str(), mode);
     if (file == nullptr) {
         return false;
     }
@@ -35,29 +38,39 @@ bool write(const char* path, const std::string& text, const char* mode) {
     return std::fclose(file) == 0 && written;
 }
 
+// File names in the card's top folder, one per line. Empty if it can't be read.
+std::string listing() {
+    std::vector<char> buffer(kListingBytes, '\0');
+    if (pros::c::usd_list_files("/", buffer.data(), static_cast<int32_t>(buffer.size() - 1)) != 1) {
+        return {};
+    }
+    return buffer.data();
+}
+
 } // namespace
 
-bool RunLog::start() {
+bool RunLog::start(const char* name) {
     mutex_.take();
     if (writing_.load()) {
         mutex_.give();
         return true;
     }
     error_.store(nullptr);
+    if (!validLogName(name)) {
+        return fail("name: 1 to 16 letters, digits, _ or -");
+    }
     if (pros::c::usd_is_installed() != 1) {
         return fail("no SD card");
     }
 
-    int number = 0;
-    for (int n = 1; n <= kMaxFiles && number == 0; ++n) {
-        std::snprintf(path_, sizeof path_, "/usd/run%03d.csv", n);
-        if (!exists(path_)) {
-            number = n;
-        }
-    }
-    if (number == 0) {
-        return fail("run001 to run999 all used");
-    }
+    // Past the highest on the card; exists() in case the listing was cut short.
+    int      number = nextLogNumber(listing(), name);
+    FileName file;
+    do {
+        std::snprintf(file.text, sizeof file.text, "%s", logFileName(name, number++).c_str());
+        path_ = std::string("/usd/") + file.text;
+    } while (exists(path_));
+
     if (!write(path_, logHeader(), "w")) {
         return fail("could not create the file");
     }
@@ -72,7 +85,7 @@ bool RunLog::start() {
     LogRow stale; // pushed while the last file was closing
     while (queue_.pop(stale)) {
     }
-    number_.store(static_cast<uint16_t>(number));
+    file_.store(file);
     rows_.store(0);
     dropped_.store(0);
     writing_.store(true);
@@ -98,7 +111,10 @@ void RunLog::push(const LogRow& row) {
 LogStatus RunLog::status() const {
     LogStatus s;
     s.writing = writing_.load();
-    s.number  = number_.load();
+    FileName file;
+    if (file_.load(file)) {
+        std::memcpy(s.file, file.text, sizeof s.file);
+    }
     s.rows    = rows_.load();
     s.dropped = dropped_.load();
     s.error   = error_.load();

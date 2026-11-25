@@ -8,6 +8,7 @@
 #include <thread>
 #include <vector>
 
+#include "locagatr/log/log_name.h"
 #include "locagatr/log/log_queue.h"
 #include "locagatr/log/log_row.h"
 
@@ -122,6 +123,37 @@ TEST(LogRow, PoseSetFillsTheSetColumns) {
     EXPECT_EQ(at(h, r, "set_x"), "23.4000");
     EXPECT_EQ(at(h, r, "set_y"), "46.8000");
     EXPECT_EQ(at(h, r, "set_heading"), "90.0000");
+}
+
+TEST(LogName, ValidNames) {
+    EXPECT_TRUE(validLogName("auton"));
+    EXPECT_TRUE(validLogName("skills_2-a"));
+    EXPECT_TRUE(validLogName("abcdefghijklmnop")); // 16
+    EXPECT_FALSE(validLogName("abcdefghijklmnopq"));
+    EXPECT_FALSE(validLogName(""));
+    EXPECT_FALSE(validLogName(nullptr));
+    EXPECT_FALSE(validLogName("a/b"));
+    EXPECT_FALSE(validLogName("a.csv"));
+    EXPECT_FALSE(validLogName("two words"));
+}
+
+TEST(LogName, OnePastTheHighestForThatName) {
+    EXPECT_EQ(nextLogNumber("", "auton"), 1);
+    EXPECT_EQ(nextLogNumber("auton001.csv\nauton003.csv\n", "auton"), 4); // a gap is not reused
+    EXPECT_EQ(nextLogNumber("AUTON007.CSV\r\nnotes.txt", "auton"), 8);
+    EXPECT_EQ(nextLogNumber("auton1000.csv", "auton"), 1001);
+}
+
+TEST(LogName, OtherFilesDoNotCount) {
+    const std::string listing = "skills009.csv\nauton.csv\nauton01x.csv\nautonomous002.csv\n"
+                                "auton002.txt\nmyauton005.csv";
+    EXPECT_EQ(nextLogNumber(listing, "auton"), 1);
+    EXPECT_EQ(nextLogNumber(listing, "skills"), 10);
+}
+
+TEST(LogName, FileName) {
+    EXPECT_EQ(logFileName("auton", 1), "auton001.csv");
+    EXPECT_EQ(logFileName("auton", 1234), "auton1234.csv");
 }
 
 TEST(LogQueue, InOrderAndDropsWhenFull) {

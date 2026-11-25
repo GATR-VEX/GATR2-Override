@@ -48,6 +48,7 @@ add_library(locagatr STATIC
     src/processors/drive_motor_processor.cpp
     src/estimators/odometry_estimator.cpp
     src/log/log_row.cpp
+    src/log/log_name.cpp
     ${GATR2_ELECTRONICS}/brain/locaGATR/src/link.cpp
     ${GATR2_ELECTRONICS}/pico/locaGATR/src/brainlink/wire.cpp
     ${GATR2_ELECTRONICS}/pico/locaGATR/src/records/encoder.cpp

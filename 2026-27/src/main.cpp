@@ -42,7 +42,7 @@ void startAuton() {
 }
 
 void autonomous() {
-    localizer.startLog();
+    localizer.startLog("auton");
     startAuton();
     navigator.wait();
     localizer.stopLog();
@@ -61,7 +61,7 @@ void opcontrol() {
         // A runs the auton route, B stops it. The sticks do nothing meanwhile.
         // Each run is logged to its own file.
         if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) && !navigator.isRunning()) {
-            logging_route = localizer.startLog();
+            logging_route = localizer.startLog("auton");
             startAuton();
         }
         if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {

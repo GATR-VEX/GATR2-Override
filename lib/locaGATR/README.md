@@ -106,16 +106,21 @@ Don't print it while spectaGATR runs; both use the same serial output.
 
 ```cpp
 void autonomous() {
-    localizer.startLog(); // a new file: /usd/run001.csv, run002.csv, ...
+    localizer.startLog("auton"); // a new file: /usd/auton001.csv, then auton002.csv, ...
     // run the route
-    localizer.stopLog();  // returns once the file is complete
+    localizer.stopLog();         // returns once the file is complete
 }
 ```
 
-Anywhere after `start()`, from any task. `startLog()` returns false without
-a microSD card, and `getStatus().log.error` says why; the robot runs as
-usual either way. Stopping the program without `stopLog()` is fine: the file
-is closed between writes, so only the last 0.5 s or so is lost.
+Anywhere after `start()`, from any task. The name is required: 1 to 16
+letters, digits, `_` or `-`. The number is one past the highest file with
+that name on the card, so numbers follow the order of the runs and a deleted
+file's number is not reused; each name counts on its own.
+
+`startLog()` returns false for a bad name or without a microSD card, and
+`getStatus().log.error` says why; the robot runs as usual either way.
+Stopping the program without `stopLog()` is fine: the file is closed between
+writes, so only the last 0.5 s or so is lost.
 
 One row per tick, the raw readings before processing plus the pose it
 published:
@@ -179,6 +184,6 @@ ctest --test-dir build-locagatr --output-on-failure
 
 ## Status
 
-52 host tests, builds with PROS 4.2.2. Runs on the 2026-27 robot; the log is
+56 host tests, builds with PROS 4.2.2. Runs on the 2026-27 robot; the log is
 not yet run on a Brain. Motor counts per
 turn (1800, 900, 300 by cartridge) are from the PROS docs, unchecked.

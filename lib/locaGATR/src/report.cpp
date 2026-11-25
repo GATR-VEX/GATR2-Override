@@ -71,10 +71,10 @@ std::string describe(const Config& config, const Status& status) {
     } else if (log.writing) {
         out += "writing";
     } else {
-        out += log.number == 0 ? "off" : "stopped";
+        out += log.file[0] == '\0' ? "off" : "stopped";
     }
-    if (log.number != 0) {
-        add(out, ", /usd/run%03u.csv, %lu rows, %lu dropped", static_cast<unsigned>(log.number),
+    if (log.file[0] != '\0') {
+        add(out, ", /usd/%.31s, %lu rows, %lu dropped", log.file,
             static_cast<unsigned long>(log.rows), static_cast<unsigned long>(log.dropped));
     }
     out += '\n';

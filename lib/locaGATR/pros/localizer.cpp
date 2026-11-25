@@ -39,7 +39,7 @@ bool Localizer::start() {
     return start_ok_;
 }
 
-bool Localizer::startLog() { return log_ && log_->start(); }
+bool Localizer::startLog(const char* name) { return log_ && log_->start(name); }
 
 void Localizer::stopLog() {
     if (log_) {

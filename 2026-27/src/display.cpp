@@ -78,11 +78,11 @@ void run(void*) {
         const locagatr::LogStatus& log = status.log;
         if (log.error != nullptr) {
             std::snprintf(text, sizeof text, "log FAILED: %s", log.error);
-        } else if (log.number == 0) {
+        } else if (log.file[0] == '\0') {
             std::snprintf(text, sizeof text, "log off");
         } else {
-            std::snprintf(text, sizeof text, "log %s run%03u  %lu rows  %lu dropped",
-                          log.writing ? "ON" : "done", static_cast<unsigned>(log.number),
+            std::snprintf(text, sizeof text, "log %s %.31s  %lu rows  %lu dropped",
+                          log.writing ? "ON" : "done", log.file,
                           static_cast<unsigned long>(log.rows),
                           static_cast<unsigned long>(log.dropped));
         }
