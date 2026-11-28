@@ -29,6 +29,27 @@ TEST(Route, PathStartsANewMove) {
     EXPECT_DOUBLE_EQ(route.steps()[1].segments[0].start_heading, 90);
 }
 
+TEST(Route, FollowPicksTheFollowerPerMove) {
+    const Route route = Route({0, 0, 0})
+                            .follow(Follow::kTrajectory) // before any segment: the first move
+                            .line({24, 0})
+                            .line({24, 24})
+                            .path()
+                            .line({0, 24})
+                            .follow(Follow::kPurePursuit) // after a segment: that move
+                            .turnTo(90)
+                            .follow(Follow::kTrajectory) // after a turn: the next move
+                            .line({0, 0})
+                            .path()
+                            .line({12, 0}); // not given: default
+    ASSERT_EQ(route.steps().size(), 5u);
+    EXPECT_EQ(route.steps()[0].follow, Follow::kTrajectory);
+    EXPECT_EQ(route.steps()[0].segments.size(), 2u); // one move, one follower
+    EXPECT_EQ(route.steps()[1].follow, Follow::kPurePursuit);
+    EXPECT_EQ(route.steps()[3].follow, Follow::kTrajectory);
+    EXPECT_EQ(route.steps()[4].follow, Follow::kDefault);
+}
+
 TEST(Route, TurnAndWaitEndAMove) {
     const Route route = Route({0, 0, 0}).line({24, 0}).turnTo(90).wait(250).line({24, 24});
     ASSERT_EQ(route.steps().size(), 4u);

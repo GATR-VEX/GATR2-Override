@@ -261,19 +261,18 @@ double worstMiss(const std::vector<Pose>& trail, const Path& path) {
 // The tests above run the default, PurePursuitFollower.
 
 TEST(Pipeline, TrajectoryFollowerFollowsLinesCurvesAndTurns) {
-    SimRobot           robot;
-    TrajectoryFollower trajectory;
+    SimRobot    robot;
     robot.pose        = {24, 12, 90};
     const Route route = Route({24, 12, 90})
+                            .follow(Follow::kTrajectory)
                             .line({24, 36})
                             .bezier({24, 48}, {36, 60}, {48, 60})
                             .facing(0)
                             .turnTo(180)
                             .wait(200)
+                            .follow(Follow::kTrajectory)
                             .line({24, 60});
-    Config c   = config(robot);
-    c.follower = &trajectory;
-    Pipeline pipeline(c, robot.io());
+    Pipeline pipeline(config(robot), robot.io());
     ASSERT_TRUE(pipeline.begin());
     EXPECT_TRUE(pipeline.run(route).ok());
     EXPECT_NEAR(robot.pose.x, 24, 1.0);
@@ -282,28 +281,24 @@ TEST(Pipeline, TrajectoryFollowerFollowsLinesCurvesAndTurns) {
 }
 
 TEST(Pipeline, TrajectoryFollowerCorrectsAStartingError) {
-    SimRobot           robot;
-    TrajectoryFollower trajectory;
+    SimRobot robot;
     robot.pose = {26, 10, 80}; // off by 2 in, 2 in, 10 deg
-    Config c   = config(robot);
-    c.follower = &trajectory;
-    Pipeline pipeline(c, robot.io());
+    Pipeline pipeline(config(robot), robot.io());
     ASSERT_TRUE(pipeline.begin());
-    EXPECT_TRUE(pipeline.run(Route({24, 12, 90}).line({24, 48})).ok());
+    EXPECT_TRUE(pipeline.run(Route({24, 12, 90}).follow(Follow::kTrajectory).line({24, 48})).ok());
     EXPECT_NEAR(robot.pose.x, 24, 1.0);
     EXPECT_NEAR(robot.pose.y, 48, 1.0);
 }
 
 // Farthest from the path on a straight then a curve, the robot moving
 // scale of what it is told.
-double missWhenScaled(double scale, Follower* follower) {
+double missWhenScaled(double scale, Follow follow) {
     SimRobot robot;
     robot.scale       = scale;
     robot.pose        = {24, 12, 90};
-    const Route route = Route({24, 12, 90}).line({24, 36}).bezier({24, 48}, {36, 60}, {48, 60});
-    Config c          = config(robot);
-    c.follower        = follower;
-    Pipeline pipeline(c, robot.io());
+    const Route route =
+        Route({24, 12, 90}).follow(follow).line({24, 36}).bezier({24, 48}, {36, 60}, {48, 60});
+    Pipeline pipeline(config(robot), robot.io());
     EXPECT_TRUE(pipeline.begin());
     EXPECT_TRUE(pipeline.run(route).ok());
     EXPECT_NEAR(robot.pose.x, 48, 1.0);
@@ -314,13 +309,55 @@ double missWhenScaled(double scale, Follower* follower) {
 TEST(Pipeline, PurePursuitStaysOnThePathWhenTheRobotIsSlow) {
     // The trajectory follower cuts the curve once the robot falls behind;
     // pure pursuit misses by what its lookahead cuts, at any speed.
-    PurePursuitFollower pure_pursuit;
-    TrajectoryFollower  trajectory;
-    const double        full = missWhenScaled(1.0, &pure_pursuit);
-    const double        slow = missWhenScaled(0.75, &pure_pursuit);
+    const double full = missWhenScaled(1.0, Follow::kPurePursuit);
+    const double slow = missWhenScaled(0.75, Follow::kPurePursuit);
     EXPECT_LT(slow, 1.0);
     EXPECT_NEAR(slow, full, 0.1);
-    EXPECT_GT(missWhenScaled(0.75, &trajectory) - missWhenScaled(1.0, &trajectory), 0.5);
+    EXPECT_GT(missWhenScaled(0.75, Follow::kTrajectory) - missWhenScaled(1.0, Follow::kTrajectory),
+              0.5);
+}
+
+// Counts its updates, otherwise the trajectory follower.
+struct CountingFollower : TrajectoryFollower {
+    int           updates = 0;
+    ChassisSpeeds update(const Pose& pose, const Goal& goal, double dt) override {
+        ++updates;
+        return TrajectoryFollower::update(pose, goal, dt);
+    }
+};
+
+TEST(Pipeline, EachPathUsesItsOwnFollower) {
+    SimRobot         robot;
+    CountingFollower custom;
+    Config           c = config(robot);
+    c.follower         = &custom; // Follow::kDefault
+    const Route route  = Route({0, 0, 0})
+                            .follow(Follow::kPurePursuit)
+                            .line({24, 0})
+                            .path()
+                            .follow(Follow::kTrajectory)
+                            .line({24, 24})
+                            .path()
+                            .line({0, 24}); // default: custom
+    Pipeline pipeline(c, robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    const Plan plan = pipeline.plan(route);
+
+    EXPECT_TRUE(pipeline.runStep(route, plan, 0).ok());
+    EXPECT_TRUE(pipeline.runStep(route, plan, 1).ok());
+    EXPECT_EQ(custom.updates, 0);
+    EXPECT_TRUE(pipeline.runStep(route, plan, 2).ok());
+    EXPECT_GT(custom.updates, 0);
+    EXPECT_NEAR(robot.pose.x, 0, 1.0);
+    EXPECT_NEAR(robot.pose.y, 24, 1.0);
+}
+
+TEST(Pipeline, BadPurePursuitSettingFailsAtBegin) {
+    SimRobot robot;
+    Config   c               = config(robot);
+    c.pure_pursuit.lookahead = 0;
+    Pipeline pipeline(c, robot.io());
+    EXPECT_FALSE(pipeline.begin()); // not halfway through a route
 }
 
 } // namespace

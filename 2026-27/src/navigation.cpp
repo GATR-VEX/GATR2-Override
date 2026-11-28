@@ -34,7 +34,8 @@ navigatr::Config config() {
     c.feedforward.ks = 500; // mV. CHECK: least that moves the robot
 
     c.drive = &drive;
-    // Follower: PurePursuitFollower, the default, 6 in lookahead.
+    // Follower per path: Route::follow(). Not given: pure pursuit.
+    c.pure_pursuit.lookahead = 6; // in. CHECK
     return c;
 }
 

@@ -23,10 +23,10 @@ Config config() {
 }
 
 PurePursuitFollower started(double lookahead = 12) {
-    PurePursuitConfig settings;
-    settings.lookahead = lookahead;
-    PurePursuitFollower f(settings);
-    EXPECT_TRUE(f.begin(config()));
+    Config c                 = config();
+    c.pure_pursuit.lookahead = lookahead;
+    PurePursuitFollower f;
+    EXPECT_TRUE(f.begin(c));
     return f;
 }
 
@@ -137,10 +137,10 @@ TEST(PurePursuit, ResetStartsTheNextMoveFromRest) {
 }
 
 TEST(PurePursuit, NeedsALookahead) {
-    PurePursuitConfig settings;
-    settings.lookahead = 0;
-    PurePursuitFollower f(settings);
-    EXPECT_FALSE(f.begin(config()));
+    Config c                 = config();
+    c.pure_pursuit.lookahead = 0;
+    PurePursuitFollower f;
+    EXPECT_FALSE(f.begin(c));
 }
 
 } // namespace

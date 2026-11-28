@@ -1,12 +1,12 @@
 // route.h
 // An autonomous route. Segments in a row are one move, with no stop between
 // them; path() starts a new one. The heading holds unless facing() or
-// tangent() is given. Portable.
+// tangent() is given. Each move can pick its follower. Portable.
 //
 //   Route({24, 12, 90})
 //       .bezier({36, 24}, {48, 48}, {60, 48}).facing(0)
 //       .line({60, 72}).at(0.5, [] { intake.move(127); })
-//       .path()
+//       .path().follow(Follow::kTrajectory)
 //       .line({36, 72})
 //       .turnTo(180)
 //       .wait(300);
@@ -35,10 +35,18 @@ struct Segment {
     std::vector<Action> actions;
 };
 
+// Which follower drives a move.
+enum class Follow {
+    kDefault,     // Config::follower, else pure pursuit
+    kPurePursuit, // PurePursuitFollower: toward a point ahead on the path
+    kTrajectory,  // TrajectoryFollower: the trajectory point at time t
+};
+
 struct Step {
     enum class Kind { kMove, kTurn, kWait };
     Kind                 kind = Kind::kMove;
-    std::vector<Segment> segments; // kMove
+    std::vector<Segment> segments;                  // kMove
+    Follow               follow = Follow::kDefault; // kMove
     Point                position; // kTurn: where to turn
     double               heading = 0; // kTurn: deg to face
     uint32_t             ms      = 0; // kWait
@@ -51,6 +59,9 @@ class Route {
 
     // The next segment starts a new move: the robot stops and settles first.
     Route& path();
+    // The follower for the move being built, or the next one after path(),
+    // a turn or a wait.
+    Route& follow(Follow follower);
     Route& line(Point end);
     Route& bezier(Point control_1, Point control_2, Point end);
     // The last segment ends facing this way.
@@ -72,7 +83,8 @@ class Route {
     Pose              start_;
     Point             position_;
     double            heading_  = 0;
-    bool              new_move_ = false; // path() called since the last segment
+    bool              new_move_    = false;            // path() called since the last segment
+    Follow            next_follow_ = Follow::kDefault; // for the next move started
     std::vector<Step> steps_;
 };
 

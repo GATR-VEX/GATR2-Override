@@ -26,6 +26,8 @@
 #include "navigatr/config.h"
 #include "navigatr/drives/drive.h"
 #include "navigatr/followers/follower.h"
+#include "navigatr/followers/pure_pursuit_follower.h"
+#include "navigatr/followers/trajectory_follower.h"
 #include "navigatr/path.h"
 #include "navigatr/profiles/profile.h"
 #include "navigatr/route.h"
@@ -90,20 +92,21 @@ class Pipeline {
     End  step(const Step& s, const MovePlan* move_plan, double done, double total);
     static void record(End end, std::size_t index, Outcome& outcome);
     void report(double fraction);
-    End  move(const MovePlan& plan, double done, double total);
+    End  move(const MovePlan& plan, Follower& follower, double done, double total);
     End  turn(const Step& step);
     End  wait(const Step& step);
     bool cancelled() const { return io_.cancelled && io_.cancelled(); }
-    End track(const std::function<Goal(double t, bool& arrived)>& goal, double timeout_s,
-              const std::function<void(double t)>& on_tick);
+    Follower& follower(Follow follow);
+    End track(Follower& follower, const std::function<Goal(double t, bool& arrived)>& goal,
+              double timeout_s, const std::function<void(double t)>& on_tick);
 
-    Config                    config_;
-    Io                        io_;
-    std::unique_ptr<Profile>  own_profile_;
-    std::unique_ptr<Follower> own_follower_;
-    Profile*                  profile_  = nullptr;
-    Follower*                 follower_ = nullptr;
-    Drive*                    drive_    = nullptr;
+    Config                   config_;
+    Io                       io_;
+    std::unique_ptr<Profile> own_profile_;
+    Profile*                 profile_ = nullptr;
+    PurePursuitFollower      pure_pursuit_;
+    TrajectoryFollower       trajectory_;
+    Drive*                   drive_ = nullptr;
 };
 
 } // namespace navigatr

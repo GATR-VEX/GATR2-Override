@@ -5,7 +5,7 @@
 // robot is, not from the clock, so a robot that falls behind does not chase
 // a target running away from it. Heading follows the path. Turn steps, and
 // the last lookahead inches of a move, are TrajectoryFollower's PID on the
-// end pose.
+// end pose. Settings: Config::pure_pursuit.
 
 #pragma once
 #include <cstddef>
@@ -17,15 +17,8 @@
 namespace navigatr
 {
 
-struct PurePursuitConfig {
-    double lookahead = 6;  // in. Larger: smoother, cuts curves more. Smaller: tighter, wobbles
-    double search    = 24; // in past the last nearest point to look for the next one
-};
-
 class PurePursuitFollower : public Follower {
   public:
-    explicit PurePursuitFollower(const PurePursuitConfig& config = {}) : config_(config) {}
-
     const char*   name() const override { return "pure pursuit"; }
     bool          begin(const Config& config) override;
     void          reset() override;
@@ -38,7 +31,7 @@ class PurePursuitFollower : public Follower {
     bool        finishing() const { return finishing_; }
 
   private:
-    PurePursuitConfig   config_;
+    PurePursuit         config_;
     Limits              limits_;
     TrajectoryFollower  hold_; // turns and the last stretch
     Pid                 heading_;

@@ -16,9 +16,21 @@ Route& Route::path() {
     return *this;
 }
 
+Route& Route::follow(Follow follower) {
+    if (!steps_.empty() && steps_.back().kind == Step::Kind::kMove && !new_move_) {
+        steps_.back().follow = follower;
+    } else {
+        next_follow_ = follower;
+    }
+    return *this;
+}
+
 Route& Route::addSegment(const Bezier& curve) {
     if (steps_.empty() || steps_.back().kind != Step::Kind::kMove || new_move_) {
-        steps_.push_back(Step{});
+        Step step;
+        step.follow  = next_follow_;
+        next_follow_ = Follow::kDefault;
+        steps_.push_back(step);
     }
     new_move_ = false;
     Segment segment;

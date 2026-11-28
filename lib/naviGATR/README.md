@@ -31,6 +31,7 @@ navigator.follow(route);
 |---|---|
 | `Route({x, y, heading})` | Start pose |
 | `path()` | The next segment starts a new move, so `next()` stops before it |
+| `follow(Follow::k...)` | The follower for this move, or the next one if a move is not being built. See [Followers](#followers) |
 | `line({x, y})` | Straight to the point |
 | `bezier(c1, c2, end)` | Cubic Bezier: two control points, then the end |
 | `facing(heading)` | Last segment ends facing this way |
@@ -132,14 +133,29 @@ does not. On the simulated robot, a quarter circle about a tile across:
 | 75% of it | 0.8 in | 2.5 in | 1.6 in |
 
 Pure pursuit settles on the end pose with the trajectory follower's PID
-within `lookahead` of the end, and for turn steps. Another lookahead, or the
-trajectory follower:
+within `lookahead` of the end, and for turn steps.
+
+Each move picks its follower, so one route can mix them:
 
 ```cpp
-navigatr::PurePursuitFollower pure_pursuit({4});  // PurePursuitConfig: lookahead, search
-navigatr::TrajectoryFollower  trajectory;
-c.follower = &pure_pursuit;                       // or &trajectory
+navigatr::Route({7.5, 69.5, 0})
+    .follow(navigatr::Follow::kTrajectory)   // first path: on the clock
+    .bezier({12, 70.5}, {5.5, 47.5}, {13, 46.5})
+    .path().follow(navigatr::Follow::kPurePursuit)
+    .bezier({16, 16.5}, {11, 11}, {11, 12})
+    .path()                                  // not given: kDefault
+    .line({36, 23});
 ```
+
+| `Follow` | Runs |
+|---|---|
+| `kDefault` | `Config::follower` if set, else pure pursuit. Turn steps use it too |
+| `kPurePursuit` | The pipeline's own `PurePursuitFollower`, settings in `Config::pure_pursuit` |
+| `kTrajectory` | The pipeline's own `TrajectoryFollower` |
+
+Every one of them begins in `start()`, so a bad setting fails there, not
+halfway through a route. A follower of your own goes in `Config::follower`
+and runs for `kDefault`.
 
 ## Tuning
 
@@ -151,7 +167,7 @@ Start around 24 in/s with the localizer already checked.
 | `feedforward.ks` | Raise until the robot just moves |
 | `feedforward.kv` | Leave at 0 unless it runs consistently fast or slow |
 | `gains.kp`, `gains.heading_kp` | Raise until it holds the path without wobble |
-| `lookahead` (pure pursuit) | Wobbles side to side: raise. Cuts curves: lower |
+| `pure_pursuit.lookahead` | Wobbles side to side: raise. Cuts curves: lower |
 | `limits` | Raise once it follows cleanly |
 
 ## Driver control
@@ -206,7 +222,7 @@ ctest --test-dir build-navigatr --output-on-failure
 
 ## Status
 
-62 host tests, including whole routes and single steps on a simulated robot.
+65 host tests, including whole routes and single steps on a simulated robot.
 Driver control through `Drive`, heading hold and pure pursuit not yet run on
 a robot.
 Builds with PROS 4.2.2. Not run on a robot; the navigator task (start, load,

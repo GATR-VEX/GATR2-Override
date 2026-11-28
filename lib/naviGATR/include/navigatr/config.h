@@ -30,6 +30,12 @@ struct Gains {
     double heading_kd = 0;
 };
 
+// PurePursuitFollower.
+struct PurePursuit {
+    double lookahead = 6;  // in. Larger: smoother, cuts curves more. Smaller: tighter, wobbles
+    double search    = 24; // in past the last nearest point to look for the next one
+};
+
 // A step is done within these for settle_ms, or gives up timeout_ms late.
 struct Tolerances {
     double   position   = 1.0; // in
@@ -54,7 +60,8 @@ struct Config {
     Feedforward  feedforward;
     gatr2::Robot robot;              // the same one the localizer gets; the drive reads Robot::drive
     Profile*     profile  = nullptr; // null: TrapezoidProfile
-    Follower*    follower = nullptr; // null: PurePursuitFollower
+    PurePursuit  pure_pursuit;
+    Follower*    follower = nullptr; // Follow::kDefault. null: the built in pure pursuit
     Drive*       drive    = nullptr; // required, e.g. MecanumDrive
 };
 

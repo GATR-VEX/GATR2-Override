@@ -7,7 +7,6 @@
 #include <cmath>
 #include <utility>
 
-#include "navigatr/followers/pure_pursuit_follower.h"
 #include "navigatr/profiles/trapezoid_profile.h"
 
 namespace navigatr
@@ -17,20 +16,28 @@ Pipeline::Pipeline(const Config& config, Io io) : config_(config), io_(std::move
 
 Pipeline::~Pipeline() = default;
 
+// Every follower a route can pick begins here, so a bad setting fails now
+// rather than halfway through a route.
 bool Pipeline::begin() {
     profile_ = config_.profile;
     if (profile_ == nullptr) {
         own_profile_ = std::make_unique<TrapezoidProfile>();
         profile_     = own_profile_.get();
     }
-    follower_ = config_.follower;
-    if (follower_ == nullptr) {
-        own_follower_ = std::make_unique<PurePursuitFollower>();
-        follower_     = own_follower_.get();
-    }
     drive_ = config_.drive;
-    return drive_ != nullptr && profile_->begin(config_) && follower_->begin(config_) &&
+    return drive_ != nullptr && profile_->begin(config_) && pure_pursuit_.begin(config_) &&
+           trajectory_.begin(config_) &&
+           (config_.follower == nullptr || config_.follower->begin(config_)) &&
            drive_->begin(config_);
+}
+
+Follower& Pipeline::follower(Follow follow) {
+    switch (follow) {
+    case Follow::kPurePursuit: return pure_pursuit_;
+    case Follow::kTrajectory: return trajectory_;
+    case Follow::kDefault: break;
+    }
+    return config_.follower != nullptr ? *config_.follower : pure_pursuit_;
 }
 
 Plan Pipeline::plan(const Route& route) const {
@@ -108,7 +115,7 @@ Pipeline::End Pipeline::step(const Step& s, const MovePlan* move_plan, double do
         return End::kCancelled;
     }
     switch (s.kind) {
-    case Step::Kind::kMove: return move(*move_plan, done, total);
+    case Step::Kind::kMove: return move(*move_plan, follower(s.follow), done, total);
     case Step::Kind::kTurn: return turn(s);
     case Step::Kind::kWait: return wait(s);
     }
@@ -132,7 +139,8 @@ void Pipeline::report(double fraction) {
     }
 }
 
-Pipeline::End Pipeline::move(const MovePlan& plan, double done, double total) {
+Pipeline::End Pipeline::move(const MovePlan& plan, Follower& follower, double done,
+                             double total) {
     const Path&       path       = plan.path;
     const Trajectory& trajectory = plan.trajectory;
 
@@ -143,6 +151,7 @@ Pipeline::End Pipeline::move(const MovePlan& plan, double done, double total) {
         }
     };
     const End end = track(
+        follower,
         [&](double t, bool& arrived) {
             const TrajectoryPoint p = trajectory.at(t);
             arrived                 = t >= trajectory.duration();
@@ -183,6 +192,7 @@ Pipeline::End Pipeline::turn(const Step& step) {
     goal.target.y       = step.position.y;
     goal.target.heading = step.heading;
     return track(
+        follower(Follow::kDefault),
         [&](double t, bool& arrived) {
             arrived = true;
             goal.t  = t;
@@ -210,10 +220,11 @@ Pipeline::End Pipeline::wait(const Step& step) {
     }
 }
 
-Pipeline::End Pipeline::track(const std::function<Goal(double t, bool& arrived)>& goal_at,
+Pipeline::End Pipeline::track(Follower&                                           follower,
+                              const std::function<Goal(double t, bool& arrived)>& goal_at,
                               double                                              timeout_s,
                               const std::function<void(double t)>&                on_tick) {
-    follower_->reset();
+    follower.reset();
     const Tolerances& tolerance = config_.tolerances;
     const uint32_t    period_ms = std::max<uint32_t>(1, 1000 / std::max<uint32_t>(1, config_.rate_hz));
     const double      dt        = period_ms / 1000.0;
@@ -231,7 +242,7 @@ Pipeline::End Pipeline::track(const std::function<Goal(double t, bool& arrived)>
         const Goal goal    = goal_at(t, arrived);
         const Pose pose    = io_.pose();
         // 3. Follow.
-        const ChassisSpeeds command = follower_->update(pose, goal, dt);
+        const ChassisSpeeds command = follower.update(pose, goal, dt);
         // 4. Drive.
         drive_->apply(command);
 

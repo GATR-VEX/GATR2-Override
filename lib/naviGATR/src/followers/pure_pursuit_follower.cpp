@@ -34,6 +34,7 @@ Point pointAt(const std::vector<PathPoint>& p, std::size_t from, double s) {
 } // namespace
 
 bool PurePursuitFollower::begin(const Config& config) {
+    config_  = config.pure_pursuit;
     limits_  = config.limits;
     heading_ = Pid(config.gains.heading_kp, config.gains.heading_ki, config.gains.heading_kd);
     return hold_.begin(config) && config_.lookahead > 0 && config_.search > 0 &&
