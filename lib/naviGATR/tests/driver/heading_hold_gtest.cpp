@@ -15,6 +15,7 @@ HeadingHoldConfig config() {
     c.max_turn  = 50;
     c.deadband  = 5;
     c.settle_ms = 250;
+    c.tolerance = 1.0;
     return c;
 }
 
@@ -64,6 +65,13 @@ TEST(HeadingHold, StandingStillHoldsNothing) {
     EXPECT_FALSE(hold.holding());
     hold.turn(100, 0, 0, 20, 20);
     EXPECT_DOUBLE_EQ(hold.target(), 20); // moving again: holds the new heading
+}
+
+TEST(HeadingHold, InsideTheToleranceNoCorrection) {
+    HeadingHold hold(config());
+    hold.turn(0, 100, 0, 0, 0);
+    EXPECT_DOUBLE_EQ(hold.turn(0, 100, 0, 0.8, 10), 0);
+    EXPECT_DOUBLE_EQ(hold.turn(0, 100, 0, 1.5, 20), 3);
 }
 
 TEST(HeadingHold, SmallStickNoiseIsCentered) {

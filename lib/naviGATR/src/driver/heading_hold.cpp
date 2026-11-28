@@ -35,6 +35,9 @@ double HeadingHold::turn(double forward, double strafe, double turn, double head
     }
     // Twisted counterclockwise past the target (error < 0): turn right, a positive stick.
     const double error = wrap180(target_ - heading);
+    if (std::fabs(error) < config_.tolerance) {
+        return 0;
+    }
     return std::clamp(-config_.kp * error, -config_.max_turn, config_.max_turn);
 }
 

@@ -1,14 +1,12 @@
 #include "main.h"
 
-#include <algorithm>
-#include <array>
-#include <cmath>
 #include <cstdio>
 
 #include "display.h"
 #include "localization.h"
 #include "navigation.h"
 #include "navigatr/driver/heading_hold.h"
+#include "navigatr/driver/sticks.h"
 
 // Starts against the red wall, halfway up it, facing blue. docs/field-frame.md.
 navigatr::Route autonRoute() {
@@ -31,6 +29,9 @@ void initialize() {
     startDisplay();
     if (!started) {
         message(6, "localizer: a stage failed, see terminal");
+    }
+    if (!startDrive()) {
+        message(7, "drive: a setting in robot.cpp is missing");
     }
 }
 
@@ -55,11 +56,6 @@ void autonomous() {
 void opcontrol() {
     pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-    pros::MotorGroup fl_mg({-1, 2}); // front left
-    pros::MotorGroup fr_mg({5, -6}); // front right
-    pros::MotorGroup rl_mg({3, -4}); // rear left
-    pros::MotorGroup rr_mg({-7, 8}); // rear right
-
     navigatr::HeadingHold heading_hold; // kp: CHECK on the robot
     bool                  logging_route = false;
     while (true) {
@@ -82,27 +78,14 @@ void opcontrol() {
             continue;
         }
 
-        // Mecanum: left stick drives and strafes, right stick turns. With the
-        // right stick centered, the IMU holds the heading so strafing does not twist.
-        const double dir    = master.get_analog(ANALOG_LEFT_Y);
-        const double strafe = master.get_analog(ANALOG_LEFT_X);
-        const double turn   = heading_hold.turn(dir, strafe, master.get_analog(ANALOG_RIGHT_X),
-                                                localizer.getHeading(), pros::millis());
-        const std::array<double, 4> wheel = {
-            dir + strafe + turn, // front left
-            dir - strafe - turn, // front right
-            dir - strafe + turn, // rear left
-            dir + strafe - turn, // rear right
-        };
-        // Scaled down together past 127, so a full stick keeps its direction and the correction.
-        double largest = 127;
-        for (const double w : wheel) {
-            largest = std::max(largest, std::fabs(w));
-        }
-        fl_mg.move(static_cast<int32_t>(std::lround(wheel[0] * 127 / largest)));
-        fr_mg.move(static_cast<int32_t>(std::lround(wheel[1] * 127 / largest)));
-        rl_mg.move(static_cast<int32_t>(std::lround(wheel[2] * 127 / largest)));
-        rr_mg.move(static_cast<int32_t>(std::lround(wheel[3] * 127 / largest)));
+        // Left stick drives and strafes, right stick turns. With the right
+        // stick centered, the IMU holds the heading so strafing does not twist.
+        const double dir        = navigatr::deadband(master.get_analog(ANALOG_LEFT_Y));
+        const double strafe     = navigatr::deadband(master.get_analog(ANALOG_LEFT_X));
+        const double stick_turn = navigatr::deadband(master.get_analog(ANALOG_RIGHT_X));
+        const double turn =
+            heading_hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
+        drive.apply(navigatr::stickSpeeds({dir, strafe, turn}, drive.top()));
         pros::delay(20);
     }
 }

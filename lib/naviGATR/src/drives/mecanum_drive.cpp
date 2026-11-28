@@ -20,8 +20,17 @@ double wheelKv(const gatr2::DriveMotors& motors, const Feedforward& feedforward)
     if (feedforward.kv > 0) {
         return feedforward.kv;
     }
-    const double top = motors.motor_rpm / 60.0 * motors.gear_ratio * kPi * motors.wheel_diameter;
+    const double top = topSpeed(motors);
     return top > 0 ? feedforward.max_mv / top : 0.0;
+}
+
+ChassisSpeeds mecanumTop(const gatr2::DriveMotors& motors) {
+    const double  k = (motors.track_width + motors.wheelbase) / 2.0;
+    ChassisSpeeds top;
+    top.forward = topSpeed(motors);
+    top.left    = top.forward;
+    top.turn    = k > 0 ? degrees(top.forward / k) : 0.0;
+    return top;
 }
 
 // Strafe left: front left and back right backward. Turn left: left side

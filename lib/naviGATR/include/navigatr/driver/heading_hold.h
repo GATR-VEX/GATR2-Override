@@ -5,6 +5,7 @@
 //
 //   navigatr::HeadingHold hold;
 //   const double turn = hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
+//   drive.apply(navigatr::stickSpeeds({dir, strafe, turn}, drive.top())); // driver/sticks.h
 
 #pragma once
 #include <cstdint>
@@ -15,6 +16,7 @@ namespace navigatr
 struct HeadingHoldConfig {
     double   kp        = 2.0;  // stick units per degree off. CHECK on the robot
     double   max_turn  = 50;   // largest correction, stick units
+    double   tolerance = 1.0;  // deg off before it corrects, so it does not buzz
     double   deadband  = 5;    // sticks below this count as centered
     uint32_t settle_ms = 250;  // after the turn stick is let go, before holding
 };

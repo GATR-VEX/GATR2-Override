@@ -40,6 +40,7 @@ add_library(navigatr STATIC
     src/followers/holonomic_follower.cpp
     src/drives/mecanum_drive.cpp
     src/driver/heading_hold.cpp
+    src/driver/sticks.cpp
 )
 target_include_directories(navigatr PUBLIC
     include
@@ -59,6 +60,7 @@ set(NAVIGATR_TEST_SOURCES
     tests/followers/holonomic_follower_gtest.cpp
     tests/drives/mecanum_drive_gtest.cpp
     tests/driver/heading_hold_gtest.cpp
+    tests/driver/sticks_gtest.cpp
 )
 
 add_executable(navigatr_tests ${NAVIGATR_TEST_SOURCES})

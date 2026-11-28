@@ -6,12 +6,11 @@
 
 #include "localization.h"
 #include "robot.h"
-#include "navigatr/drives/mecanum_drive.h"
+
+navigatr::MecanumDrive drive;
 
 namespace
 {
-
-navigatr::MecanumDrive mecanum;
 
 navigatr::Config config() {
     navigatr::Config c;
@@ -34,10 +33,12 @@ navigatr::Config config() {
     c.robot          = robot();
     c.feedforward.ks = 500; // mV. CHECK: least that moves the robot
 
-    c.drive = &mecanum;
+    c.drive = &drive;
     return c;
 }
 
 } // namespace
 
 navigatr::Navigator navigator(config(), localizer);
+
+bool startDrive() { return drive.begin(config()); }

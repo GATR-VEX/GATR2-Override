@@ -17,12 +17,16 @@ double wheelKv(const gatr2::DriveMotors& motors, const Feedforward& feedforward)
 std::array<double, 4> mecanumVoltages(const ChassisSpeeds& speeds, const gatr2::DriveMotors& motors,
                                       const Feedforward& feedforward);
 
+// Full speed forward, sideways and turning, each on its own.
+ChassisSpeeds mecanumTop(const gatr2::DriveMotors& motors);
+
 class MecanumDrive : public Drive {
   public:
-    const char* name() const override { return "mecanum"; }
-    bool        begin(const Config& config) override; // needs all four corners
-    void        apply(const ChassisSpeeds& speeds) override;
-    void        stop() override;
+    const char*   name() const override { return "mecanum"; }
+    bool          begin(const Config& config) override; // needs all four corners
+    void          apply(const ChassisSpeeds& speeds) override;
+    void          stop() override;
+    ChassisSpeeds top() const override { return mecanumTop(motors_); }
 
   private:
     gatr2::DriveMotors motors_;

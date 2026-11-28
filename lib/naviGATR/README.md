@@ -123,30 +123,45 @@ Start around 24 in/s with the localizer already checked.
 | `gains.kp`, `gains.heading_kp` | Raise until it holds the path without wobble |
 | `limits` | Raise once it follows cleanly |
 
-## Driver control: heading hold
+## Driver control
+
+Driver control goes through the same `Drive` as auton, so the ports, wheel
+mixing and scaling live in one place:
+
+```
+sticks -> HeadingHold (fills in turn) -> stickSpeeds -> Drive -> motors
+route  -> follower                                   -> Drive -> motors
+```
+
+```cpp
+const double dir        = navigatr::deadband(master.get_analog(ANALOG_LEFT_Y));
+const double strafe     = navigatr::deadband(master.get_analog(ANALOG_LEFT_X));
+const double stick_turn = navigatr::deadband(master.get_analog(ANALOG_RIGHT_X));
+const double turn = hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
+drive.apply(navigatr::stickSpeeds({dir, strafe, turn}, drive.top()));
+```
+
+`stickSpeeds` ([driver/sticks.h](include/navigatr/driver/sticks.h)) maps a
+full stick to the drive's top speed, `Drive::top()`, so full stick is full
+voltage. Call `drive.begin(config)` before the first `apply()`; the
+navigator only begins it on its first route.
+
+### Heading hold
 
 Mecanum twists when it strafes. `HeadingHold`
 ([driver/heading_hold.h](include/navigatr/driver/heading_hold.h)) holds the
-heading with the IMU while the turn stick is centered:
-
-```cpp
-navigatr::HeadingHold hold;
-const double turn = hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
-```
-
-Stick units in and out, the turn positive to the right. It holds only while
-the robot drives or strafes; standing still it lets go, so a push is not
-fought. After the turn stick is let go it waits `settle_ms` (250 ms) and
-holds where the robot stopped turning. Call `reset()` after an auton route.
+heading with the IMU while the turn stick is centered. Stick units in and
+out, the turn positive to the right. It holds only while the robot drives or
+strafes; standing still it lets go, so a push is not fought. After the turn
+stick is let go it waits `settle_ms` and holds where the robot stopped
+turning. Call `reset()` after an auton route.
 
 | Setting | How |
 |---|---|
 | `kp` (2) | Strafe full speed. Still twists: raise. Wobbles: lower |
 | `max_turn` (50) | The most it ever adds to the turn |
+| `tolerance` (1 deg) | Buzzes while holding: raise |
 | `settle_ms` (250) | Snaps back after a turn: raise |
-
-Scale the four wheels down together when one goes past 127, rather than
-letting each clip, or a full stick loses the correction.
 
 ## Host tests
 
@@ -160,7 +175,7 @@ ctest --test-dir build-navigatr --output-on-failure
 
 ## Status
 
-44 host tests, including whole routes and single steps on a simulated robot.
-Heading hold not yet run on a robot.
+50 host tests, including whole routes and single steps on a simulated robot.
+Driver control through `Drive` and heading hold not yet run on a robot.
 Builds with PROS 4.2.2. Not run on a robot; the navigator task (start, load,
 next, wait, cancel) has not run at all.
