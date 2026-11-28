@@ -97,7 +97,7 @@ step runs:
 1. path      segments -> Path
 2. profile   Path -> Trajectory          speed and time per point
 then every tick:
-3. follow    pose + target -> command    forward, left, turn
+3. follow    pose + goal -> command      forward, left, turn
 4. drive     command -> motors
 ```
 
@@ -105,11 +105,32 @@ then every tick:
 |---|---|---|
 | Path | [path.h](include/navigatr/path.h) | `samplePath` |
 | Profile | [profiles/profile.h](include/navigatr/profiles/profile.h) | `TrapezoidProfile` (default): slower in tight curves and fast heading changes |
-| Follower | [followers/follower.h](include/navigatr/followers/follower.h) | `HolonomicFollower` (default): path velocity plus PID on x, y, heading |
+| Follower | [followers/follower.h](include/navigatr/followers/follower.h) | `HolonomicFollower` (default), `PurePursuitFollower` |
 | Drive | [drives/drive.h](include/navigatr/drives/drive.h) | `MecanumDrive` |
 
 `Config` ([config.h](include/navigatr/config.h)) picks the implementations and
 holds the limits, gains, tolerances and the shared `gatr2::Robot`.
+
+### Followers
+
+Each tick the follower gets a `Goal`: the trajectory point at time t, and for
+a move the whole path and trajectory. Each takes what it needs.
+
+| Follower | Follows | Robot falls behind |
+|---|---|---|
+| `HolonomicFollower` | The trajectory point at t: its velocity plus PID on x, y, heading | Chases a target that keeps going, and cuts curves |
+| `PurePursuitFollower` | The point `lookahead` in further along the path than the robot, at the speed allowed there | Carries on from where it is |
+
+Pure pursuit cuts the inside of curves by an amount set by `lookahead`
+(default 6 in), whatever the speed. On the simulated robot, a quarter
+circle about a tile across: 0.8 in off the path at 6 in, 2.5 in at 12 in.
+Within `lookahead` of the end it settles on the end pose with the PID, as do
+turn steps. To use it:
+
+```cpp
+navigatr::PurePursuitFollower pure_pursuit; // PurePursuitConfig: lookahead, search
+c.follower = &pure_pursuit;
+```
 
 ## Tuning
 
@@ -121,6 +142,7 @@ Start around 24 in/s with the localizer already checked.
 | `feedforward.ks` | Raise until the robot just moves |
 | `feedforward.kv` | Leave at 0 unless it runs consistently fast or slow |
 | `gains.kp`, `gains.heading_kp` | Raise until it holds the path without wobble |
+| `lookahead` (pure pursuit) | Wobbles side to side: raise. Cuts curves: lower |
 | `limits` | Raise once it follows cleanly |
 
 ## Driver control
@@ -175,7 +197,8 @@ ctest --test-dir build-navigatr --output-on-failure
 
 ## Status
 
-50 host tests, including whole routes and single steps on a simulated robot.
-Driver control through `Drive` and heading hold not yet run on a robot.
+62 host tests, including whole routes and single steps on a simulated robot.
+Driver control through `Drive`, heading hold and pure pursuit not yet run on
+a robot.
 Builds with PROS 4.2.2. Not run on a robot; the navigator task (start, load,
 next, wait, cancel) has not run at all.

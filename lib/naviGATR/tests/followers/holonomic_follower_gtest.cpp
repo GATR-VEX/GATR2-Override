@@ -19,6 +19,12 @@ HolonomicFollower started() {
     return f;
 }
 
+Goal at(const Target& target) {
+    Goal goal;
+    goal.target = target;
+    return goal;
+}
+
 TEST(HolonomicFollower, OnTargetPassesTheVelocityIntoTheRobotFrame) {
     HolonomicFollower f = started();
     Pose              pose;
@@ -27,7 +33,7 @@ TEST(HolonomicFollower, OnTargetPassesTheVelocityIntoTheRobotFrame) {
     target.heading = 90;
     target.vx      = 0;
     target.vy      = 20; // moving +y: straight ahead
-    const ChassisSpeeds s = f.update(pose, target, 0.01);
+    const ChassisSpeeds s = f.update(pose, at(target), 0.01);
     EXPECT_NEAR(s.forward, 20, 1e-9);
     EXPECT_NEAR(s.left, 0, 1e-9);
     EXPECT_NEAR(s.turn, 0, 1e-9);
@@ -38,7 +44,7 @@ TEST(HolonomicFollower, PositionErrorPullsTowardTheTarget) {
     Pose              pose; // at the origin facing +x
     Target            target;
     target.y              = 5; // 5 in to the left
-    const ChassisSpeeds s = f.update(pose, target, 0.01);
+    const ChassisSpeeds s = f.update(pose, at(target), 0.01);
     EXPECT_NEAR(s.forward, 0, 1e-9);
     EXPECT_NEAR(s.left, 10, 1e-9); // kp 2
 }
@@ -49,9 +55,9 @@ TEST(HolonomicFollower, HeadingErrorTheShortWayAndClamped) {
     pose.heading = 350;
     Target target;
     target.heading = 10; // 20 deg counterclockwise
-    EXPECT_NEAR(f.update(pose, target, 0.01).turn, 60, 1e-9);
+    EXPECT_NEAR(f.update(pose, at(target), 0.01).turn, 60, 1e-9);
     target.heading = 170; // -180: clamped to the limit
-    EXPECT_NEAR(std::fabs(f.update(pose, target, 0.01).turn), 90, 1e-9);
+    EXPECT_NEAR(std::fabs(f.update(pose, at(target), 0.01).turn), 90, 1e-9);
 }
 
 } // namespace

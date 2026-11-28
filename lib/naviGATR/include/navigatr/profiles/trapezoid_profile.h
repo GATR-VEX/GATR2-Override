@@ -3,10 +3,16 @@
 // fast heading changes.
 
 #pragma once
+#include <vector>
+
 #include "navigatr/profiles/profile.h"
 
 namespace navigatr
 {
+
+// in/s per path point: max speed, slower in curves and fast heading changes,
+// decelerating to rest at the end. No ramp up from the start.
+std::vector<double> speedLimits(const Path& path, const Limits& limits);
 
 class TrapezoidProfile : public Profile {
   public:

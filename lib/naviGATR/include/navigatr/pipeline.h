@@ -9,7 +9,7 @@
 //                                                       //   2. profile  profile_->build(path)
 //       for (step : route)                              // then each step in order,
 //           every tick until settled:                   // rate_hz times a second:
-//               command = follower_->update(pose, target, dt);  // 3. follow
+//               command = follower_->update(pose, goal, dt);    // 3. follow
 //               drive_->apply(command);                         // 4. drive
 //   }
 //
@@ -94,7 +94,7 @@ class Pipeline {
     End  turn(const Step& step);
     End  wait(const Step& step);
     bool cancelled() const { return io_.cancelled && io_.cancelled(); }
-    End track(const std::function<Target(double t, bool& arrived)>& target, double timeout_s,
+    End track(const std::function<Goal(double t, bool& arrived)>& goal, double timeout_s,
               const std::function<void(double t)>& on_tick);
 
     Config                    config_;

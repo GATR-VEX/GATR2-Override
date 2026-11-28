@@ -8,6 +8,37 @@
 namespace navigatr
 {
 
+std::vector<double> speedLimits(const Path& path, const Limits& limits) {
+    const std::vector<PathPoint>& p = path.points;
+    const std::size_t             n = p.size();
+    std::vector<double>           v(n);
+    if (n == 0) {
+        return v;
+    }
+    for (std::size_t i = 0; i < n; ++i) {
+        double       limit = limits.max_speed;
+        const double k     = std::fabs(p[i].curvature);
+        if (k > 1e-9 && limits.max_lateral_accel > 0) {
+            limit = std::min(limit, std::sqrt(limits.max_lateral_accel / k));
+        }
+        const PathPoint& before = p[i == 0 ? 0 : i - 1];
+        const PathPoint& after  = p[std::min(i + 1, n - 1)];
+        const double     ds     = after.s - before.s;
+        const double     dh     = std::fabs(after.heading - before.heading);
+        if (ds > 1e-9 && dh > 1e-9 && limits.max_turn_rate > 0) {
+            limit = std::min(limit, limits.max_turn_rate * ds / dh);
+        }
+        v[i] = limit;
+    }
+    // Decelerate to rest at the end.
+    v[n - 1] = 0;
+    for (std::size_t i = n - 1; i-- > 0;) {
+        const double ds = p[i + 1].s - p[i].s;
+        v[i]            = std::min(v[i], std::sqrt(v[i + 1] * v[i + 1] + 2 * limits.max_decel * ds));
+    }
+    return v;
+}
+
 bool TrapezoidProfile::begin(const Config& config) {
     limits_ = config.limits;
     return limits_.max_speed > 0 && limits_.max_accel > 0 && limits_.max_decel > 0;
@@ -21,34 +52,12 @@ Trajectory TrapezoidProfile::build(const Path& path) const {
         return trajectory;
     }
 
-    // Speed limit per point.
-    std::vector<double> v(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        double       limit = limits_.max_speed;
-        const double k     = std::fabs(p[i].curvature);
-        if (k > 1e-9 && limits_.max_lateral_accel > 0) {
-            limit = std::min(limit, std::sqrt(limits_.max_lateral_accel / k));
-        }
-        const PathPoint& before = p[i == 0 ? 0 : i - 1];
-        const PathPoint& after  = p[std::min(i + 1, n - 1)];
-        const double     ds     = after.s - before.s;
-        const double     dh     = std::fabs(after.heading - before.heading);
-        if (ds > 1e-9 && dh > 1e-9 && limits_.max_turn_rate > 0) {
-            limit = std::min(limit, limits_.max_turn_rate * ds / dh);
-        }
-        v[i] = limit;
-    }
-
-    // Accelerate from rest, decelerate to rest.
-    v[0] = 0;
+    // Accelerate from rest, within the limits.
+    std::vector<double> v = speedLimits(path, limits_);
+    v[0]                  = 0;
     for (std::size_t i = 1; i < n; ++i) {
         const double ds = p[i].s - p[i - 1].s;
         v[i]            = std::min(v[i], std::sqrt(v[i - 1] * v[i - 1] + 2 * limits_.max_accel * ds));
-    }
-    v[n - 1] = 0;
-    for (std::size_t i = n - 1; i-- > 0;) {
-        const double ds = p[i + 1].s - p[i].s;
-        v[i]            = std::min(v[i], std::sqrt(v[i + 1] * v[i + 1] + 2 * limits_.max_decel * ds));
     }
 
     // Time.

@@ -146,14 +146,17 @@ Pipeline::End Pipeline::move(const MovePlan& plan, double done, double total) {
         [&](double t, bool& arrived) {
             const TrajectoryPoint p = trajectory.at(t);
             arrived                 = t >= trajectory.duration();
-            Target target;
-            target.x         = p.x;
-            target.y         = p.y;
-            target.heading   = p.heading;
-            target.vx        = p.v * std::cos(radians(p.tangent));
-            target.vy        = p.v * std::sin(radians(p.tangent));
-            target.turn_rate = p.heading_rate;
-            return target;
+            Goal goal;
+            goal.target.x         = p.x;
+            goal.target.y         = p.y;
+            goal.target.heading   = p.heading;
+            goal.target.vx        = p.v * std::cos(radians(p.tangent));
+            goal.target.vy        = p.v * std::sin(radians(p.tangent));
+            goal.target.turn_rate = p.heading_rate;
+            goal.path             = &path;
+            goal.trajectory       = &trajectory;
+            goal.t                = t;
+            return goal;
         },
         trajectory.duration() + config_.tolerances.timeout_ms / 1000.0,
         [&](double t) {
@@ -175,14 +178,15 @@ Pipeline::End Pipeline::turn(const Step& step) {
     }
     const double angle = std::fabs(wrap180(step.heading - io_.pose().heading));
     const double limit = config_.limits.max_turn_rate > 0 ? config_.limits.max_turn_rate : 180.0;
-    Target       target;
-    target.x       = step.position.x;
-    target.y       = step.position.y;
-    target.heading = step.heading;
+    Goal         goal;
+    goal.target.x       = step.position.x;
+    goal.target.y       = step.position.y;
+    goal.target.heading = step.heading;
     return track(
-        [&](double, bool& arrived) {
+        [&](double t, bool& arrived) {
             arrived = true;
-            return target;
+            goal.t  = t;
+            return goal;
         },
         angle / limit + config_.tolerances.timeout_ms / 1000.0, [](double) {});
 }
@@ -206,9 +210,9 @@ Pipeline::End Pipeline::wait(const Step& step) {
     }
 }
 
-Pipeline::End Pipeline::track(const std::function<Target(double t, bool& arrived)>& target,
-                              double                                                timeout_s,
-                              const std::function<void(double t)>&                  on_tick) {
+Pipeline::End Pipeline::track(const std::function<Goal(double t, bool& arrived)>& goal_at,
+                              double                                              timeout_s,
+                              const std::function<void(double t)>&                on_tick) {
     follower_->reset();
     const Tolerances& tolerance = config_.tolerances;
     const uint32_t    period_ms = std::max<uint32_t>(1, 1000 / std::max<uint32_t>(1, config_.rate_hz));
@@ -223,18 +227,19 @@ Pipeline::End Pipeline::track(const std::function<Target(double t, bool& arrived
         const double t = (io_.now_ms() - start) / 1000.0;
         on_tick(t);
 
-        bool         arrived = false; // the target has stopped moving
-        const Target goal    = target(t, arrived);
-        const Pose   pose    = io_.pose();
+        bool       arrived = false; // the target has stopped moving
+        const Goal goal    = goal_at(t, arrived);
+        const Pose pose    = io_.pose();
         // 3. Follow.
         const ChassisSpeeds command = follower_->update(pose, goal, dt);
         // 4. Drive.
         drive_->apply(command);
 
         if (arrived) {
-            const bool close =
-                std::hypot(goal.x - pose.x, goal.y - pose.y) <= tolerance.position &&
-                std::fabs(wrap180(goal.heading - pose.heading)) <= tolerance.heading;
+            const Target& end = goal.target;
+            const bool    close =
+                std::hypot(end.x - pose.x, end.y - pose.y) <= tolerance.position &&
+                std::fabs(wrap180(end.heading - pose.heading)) <= tolerance.heading;
             settled = close ? settled + period_ms : 0;
             if (settled >= tolerance.settle_ms) {
                 return End::kSettled;

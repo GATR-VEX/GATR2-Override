@@ -6,9 +6,12 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <vector>
+
+#include "navigatr/followers/pure_pursuit_follower.h"
 
 namespace navigatr
 {
@@ -20,7 +23,9 @@ struct SimRobot : Drive {
     ChassisSpeeds speeds;
     uint32_t      now_ms  = 0;
     bool          stuck   = false; // ignores every command
+    double        scale   = 1;     // moves this much of what it is told, like a slow strafe
     int           applies = 0;
+    std::vector<Pose> trail;       // every ms
 
     const char* name() const override { return "sim"; }
     void        apply(const ChassisSpeeds& s) override {
@@ -33,10 +38,11 @@ struct SimRobot : Drive {
     void sleepUntil(uint32_t ms) {
         for (; now_ms < ms; ++now_ms) {
             const double h = radians(pose.heading);
-            const double dt = 0.001;
+            const double dt = 0.001 * scale;
             pose.x += (speeds.forward * std::cos(h) - speeds.left * std::sin(h)) * dt;
             pose.y += (speeds.forward * std::sin(h) + speeds.left * std::cos(h)) * dt;
             pose.heading = std::fmod(pose.heading + speeds.turn * dt + 360.0, 360.0);
+            trail.push_back(pose);
         }
     }
 
@@ -236,6 +242,83 @@ TEST(Pipeline, TimedOutStepReportsItsIndex) {
     const Outcome outcome = pipeline.runStep(route, pipeline.plan(route), 1);
     EXPECT_EQ(outcome.timed_out, 1u);
     EXPECT_EQ(outcome.first_timed_out, 1);
+}
+
+// Farthest the robot got from the path, in.
+double worstMiss(const std::vector<Pose>& trail, const Path& path) {
+    double worst = 0;
+    for (const Pose& pose : trail) {
+        double best = 1e9;
+        for (const PathPoint& p : path.points) {
+            best = std::min(best, std::hypot(p.x - pose.x, p.y - pose.y));
+        }
+        worst = std::max(worst, best);
+    }
+    return worst;
+}
+
+TEST(Pipeline, PurePursuitFollowsLinesCurvesAndTurns) {
+    SimRobot            robot;
+    PurePursuitFollower pure_pursuit;
+    robot.pose        = {24, 12, 90};
+    const Route route = Route({24, 12, 90})
+                            .line({24, 36})
+                            .bezier({24, 48}, {36, 60}, {48, 60})
+                            .facing(0)
+                            .turnTo(180)
+                            .wait(200)
+                            .line({24, 60});
+    Config c   = config(robot);
+    c.follower = &pure_pursuit;
+    Pipeline pipeline(c, robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    EXPECT_TRUE(pipeline.run(route).ok());
+    EXPECT_NEAR(robot.pose.x, 24, 1.0);
+    EXPECT_NEAR(robot.pose.y, 60, 1.0);
+    EXPECT_NEAR(wrap180(robot.pose.heading - 180), 0, 2.0);
+}
+
+// Farthest from the path on a straight then a curve, the robot moving
+// scale of what it is told. holonomic: the default follower.
+double missWhenScaled(double scale, bool holonomic) {
+    SimRobot            robot;
+    PurePursuitFollower pure_pursuit;
+    robot.scale       = scale;
+    robot.pose        = {24, 12, 90};
+    const Route route = Route({24, 12, 90}).line({24, 36}).bezier({24, 48}, {36, 60}, {48, 60});
+    Config c          = config(robot);
+    if (!holonomic) {
+        c.follower = &pure_pursuit;
+    }
+    Pipeline pipeline(c, robot.io());
+    EXPECT_TRUE(pipeline.begin());
+    EXPECT_TRUE(pipeline.run(route).ok());
+    EXPECT_NEAR(robot.pose.x, 48, 1.0);
+    EXPECT_NEAR(robot.pose.y, 60, 1.0);
+    return worstMiss(robot.trail, pipeline.plan(route).moves[0].path);
+}
+
+TEST(Pipeline, PurePursuitStaysOnThePathWhenTheRobotIsSlow) {
+    // The clock based follower cuts the curve once the robot falls behind;
+    // pure pursuit misses by what its lookahead cuts, at any speed.
+    const double full = missWhenScaled(1.0, false);
+    const double slow = missWhenScaled(0.75, false);
+    EXPECT_LT(slow, 1.0);
+    EXPECT_NEAR(slow, full, 0.1);
+    EXPECT_GT(missWhenScaled(0.75, true) - missWhenScaled(1.0, true), 0.5);
+}
+
+TEST(Pipeline, PurePursuitCorrectsAStartingError) {
+    SimRobot            robot;
+    PurePursuitFollower pure_pursuit;
+    robot.pose = {26, 10, 80}; // off by 2 in, 2 in, 10 deg
+    Config c   = config(robot);
+    c.follower = &pure_pursuit;
+    Pipeline pipeline(c, robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    EXPECT_TRUE(pipeline.run(Route({24, 12, 90}).line({24, 48})).ok());
+    EXPECT_NEAR(robot.pose.x, 24, 1.0);
+    EXPECT_NEAR(robot.pose.y, 48, 1.0);
 }
 
 } // namespace
