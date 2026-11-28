@@ -4,7 +4,7 @@
 // (-127 to 127). Portable.
 //
 //   navigatr::HeadingHold hold;
-//   const int turn = hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
+//   const double turn = hold.turn(dir, strafe, stick_turn, localizer.getHeading(), pros::millis());
 
 #pragma once
 #include <cstdint>
