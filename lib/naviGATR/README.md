@@ -105,7 +105,7 @@ then every tick:
 |---|---|---|
 | Path | [path.h](include/navigatr/path.h) | `samplePath` |
 | Profile | [profiles/profile.h](include/navigatr/profiles/profile.h) | `TrapezoidProfile` (default): slower in tight curves and fast heading changes |
-| Follower | [followers/follower.h](include/navigatr/followers/follower.h) | `HolonomicFollower` (default), `PurePursuitFollower` |
+| Follower | [followers/follower.h](include/navigatr/followers/follower.h) | `PurePursuitFollower` (default), `TrajectoryFollower` |
 | Drive | [drives/drive.h](include/navigatr/drives/drive.h) | `MecanumDrive` |
 
 `Config` ([config.h](include/navigatr/config.h)) picks the implementations and
@@ -118,18 +118,27 @@ a move the whole path and trajectory. Each takes what it needs.
 
 | Follower | Follows | Robot falls behind |
 |---|---|---|
-| `HolonomicFollower` | The trajectory point at t: its velocity plus PID on x, y, heading | Chases a target that keeps going, and cuts curves |
 | `PurePursuitFollower` | The point `lookahead` in further along the path than the robot, at the speed allowed there | Carries on from where it is |
+| `TrajectoryFollower` | The trajectory point at t: its velocity plus PID on x, y, heading | Chases a target that keeps going, and cuts curves |
 
-Pure pursuit cuts the inside of curves by an amount set by `lookahead`
-(default 6 in), whatever the speed. On the simulated robot, a quarter
-circle about a tile across: 0.8 in off the path at 6 in, 2.5 in at 12 in.
-Within `lookahead` of the end it settles on the end pose with the PID, as do
-turn steps. To use it:
+Both are for drives that strafe (mecanum). Pure pursuit cuts the inside of
+curves by an amount set by `lookahead` (default 6 in), whatever the speed.
+The trajectory follower is tighter while the robot keeps up and worse once it
+does not. On the simulated robot, a quarter circle about a tile across:
+
+| Robot speed | Pure pursuit, 6 in | Pure pursuit, 12 in | Trajectory |
+|---|---|---|---|
+| As commanded | 0.8 in off the path | 2.5 in | 0.3 in |
+| 75% of it | 0.8 in | 2.5 in | 1.6 in |
+
+Pure pursuit settles on the end pose with the trajectory follower's PID
+within `lookahead` of the end, and for turn steps. Another lookahead, or the
+trajectory follower:
 
 ```cpp
-navigatr::PurePursuitFollower pure_pursuit; // PurePursuitConfig: lookahead, search
-c.follower = &pure_pursuit;
+navigatr::PurePursuitFollower pure_pursuit({4});  // PurePursuitConfig: lookahead, search
+navigatr::TrajectoryFollower  trajectory;
+c.follower = &pure_pursuit;                       // or &trajectory
 ```
 
 ## Tuning

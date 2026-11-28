@@ -54,7 +54,7 @@ struct Config {
     Feedforward  feedforward;
     gatr2::Robot robot;              // the same one the localizer gets; the drive reads Robot::drive
     Profile*     profile  = nullptr; // null: TrapezoidProfile
-    Follower*    follower = nullptr; // null: HolonomicFollower
+    Follower*    follower = nullptr; // null: PurePursuitFollower
     Drive*       drive    = nullptr; // required, e.g. MecanumDrive
 };
 

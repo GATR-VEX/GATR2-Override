@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "navigatr/followers/pure_pursuit_follower.h"
+#include "navigatr/followers/trajectory_follower.h"
 
 namespace navigatr
 {
@@ -257,9 +258,11 @@ double worstMiss(const std::vector<Pose>& trail, const Path& path) {
     return worst;
 }
 
-TEST(Pipeline, PurePursuitFollowsLinesCurvesAndTurns) {
-    SimRobot            robot;
-    PurePursuitFollower pure_pursuit;
+// The tests above run the default, PurePursuitFollower.
+
+TEST(Pipeline, TrajectoryFollowerFollowsLinesCurvesAndTurns) {
+    SimRobot           robot;
+    TrajectoryFollower trajectory;
     robot.pose        = {24, 12, 90};
     const Route route = Route({24, 12, 90})
                             .line({24, 36})
@@ -269,7 +272,7 @@ TEST(Pipeline, PurePursuitFollowsLinesCurvesAndTurns) {
                             .wait(200)
                             .line({24, 60});
     Config c   = config(robot);
-    c.follower = &pure_pursuit;
+    c.follower = &trajectory;
     Pipeline pipeline(c, robot.io());
     ASSERT_TRUE(pipeline.begin());
     EXPECT_TRUE(pipeline.run(route).ok());
@@ -278,18 +281,28 @@ TEST(Pipeline, PurePursuitFollowsLinesCurvesAndTurns) {
     EXPECT_NEAR(wrap180(robot.pose.heading - 180), 0, 2.0);
 }
 
+TEST(Pipeline, TrajectoryFollowerCorrectsAStartingError) {
+    SimRobot           robot;
+    TrajectoryFollower trajectory;
+    robot.pose = {26, 10, 80}; // off by 2 in, 2 in, 10 deg
+    Config c   = config(robot);
+    c.follower = &trajectory;
+    Pipeline pipeline(c, robot.io());
+    ASSERT_TRUE(pipeline.begin());
+    EXPECT_TRUE(pipeline.run(Route({24, 12, 90}).line({24, 48})).ok());
+    EXPECT_NEAR(robot.pose.x, 24, 1.0);
+    EXPECT_NEAR(robot.pose.y, 48, 1.0);
+}
+
 // Farthest from the path on a straight then a curve, the robot moving
-// scale of what it is told. holonomic: the default follower.
-double missWhenScaled(double scale, bool holonomic) {
-    SimRobot            robot;
-    PurePursuitFollower pure_pursuit;
+// scale of what it is told.
+double missWhenScaled(double scale, Follower* follower) {
+    SimRobot robot;
     robot.scale       = scale;
     robot.pose        = {24, 12, 90};
     const Route route = Route({24, 12, 90}).line({24, 36}).bezier({24, 48}, {36, 60}, {48, 60});
     Config c          = config(robot);
-    if (!holonomic) {
-        c.follower = &pure_pursuit;
-    }
+    c.follower        = follower;
     Pipeline pipeline(c, robot.io());
     EXPECT_TRUE(pipeline.begin());
     EXPECT_TRUE(pipeline.run(route).ok());
@@ -299,26 +312,15 @@ double missWhenScaled(double scale, bool holonomic) {
 }
 
 TEST(Pipeline, PurePursuitStaysOnThePathWhenTheRobotIsSlow) {
-    // The clock based follower cuts the curve once the robot falls behind;
+    // The trajectory follower cuts the curve once the robot falls behind;
     // pure pursuit misses by what its lookahead cuts, at any speed.
-    const double full = missWhenScaled(1.0, false);
-    const double slow = missWhenScaled(0.75, false);
+    PurePursuitFollower pure_pursuit;
+    TrajectoryFollower  trajectory;
+    const double        full = missWhenScaled(1.0, &pure_pursuit);
+    const double        slow = missWhenScaled(0.75, &pure_pursuit);
     EXPECT_LT(slow, 1.0);
     EXPECT_NEAR(slow, full, 0.1);
-    EXPECT_GT(missWhenScaled(0.75, true) - missWhenScaled(1.0, true), 0.5);
-}
-
-TEST(Pipeline, PurePursuitCorrectsAStartingError) {
-    SimRobot            robot;
-    PurePursuitFollower pure_pursuit;
-    robot.pose = {26, 10, 80}; // off by 2 in, 2 in, 10 deg
-    Config c   = config(robot);
-    c.follower = &pure_pursuit;
-    Pipeline pipeline(c, robot.io());
-    ASSERT_TRUE(pipeline.begin());
-    EXPECT_TRUE(pipeline.run(Route({24, 12, 90}).line({24, 48})).ok());
-    EXPECT_NEAR(robot.pose.x, 24, 1.0);
-    EXPECT_NEAR(robot.pose.y, 48, 1.0);
+    EXPECT_GT(missWhenScaled(0.75, &trajectory) - missWhenScaled(1.0, &trajectory), 0.5);
 }
 
 } // namespace

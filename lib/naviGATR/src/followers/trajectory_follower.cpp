@@ -1,6 +1,6 @@
-// holonomic_follower.cpp
+// trajectory_follower.cpp
 
-#include "navigatr/followers/holonomic_follower.h"
+#include "navigatr/followers/trajectory_follower.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 namespace navigatr
 {
 
-bool HolonomicFollower::begin(const Config& config) {
+bool TrajectoryFollower::begin(const Config& config) {
     const Gains& g = config.gains;
     x_             = Pid(g.kp, g.ki, g.kd);
     y_             = Pid(g.kp, g.ki, g.kd);
@@ -17,13 +17,13 @@ bool HolonomicFollower::begin(const Config& config) {
     return max_turn_rate_ > 0;
 }
 
-void HolonomicFollower::reset() {
+void TrajectoryFollower::reset() {
     x_.reset();
     y_.reset();
     heading_.reset();
 }
 
-ChassisSpeeds HolonomicFollower::update(const Pose& pose, const Goal& goal, double dt) {
+ChassisSpeeds TrajectoryFollower::update(const Pose& pose, const Goal& goal, double dt) {
     const Target& target = goal.target;
     const double  vx     = target.vx + x_.update(target.x - pose.x, dt);
     const double  vy     = target.vy + y_.update(target.y - pose.y, dt);

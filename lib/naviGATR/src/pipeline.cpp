@@ -7,7 +7,7 @@
 #include <cmath>
 #include <utility>
 
-#include "navigatr/followers/holonomic_follower.h"
+#include "navigatr/followers/pure_pursuit_follower.h"
 #include "navigatr/profiles/trapezoid_profile.h"
 
 namespace navigatr
@@ -25,7 +25,7 @@ bool Pipeline::begin() {
     }
     follower_ = config_.follower;
     if (follower_ == nullptr) {
-        own_follower_ = std::make_unique<HolonomicFollower>();
+        own_follower_ = std::make_unique<PurePursuitFollower>();
         follower_     = own_follower_.get();
     }
     drive_ = config_.drive;

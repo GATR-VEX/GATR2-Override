@@ -1,6 +1,6 @@
-// holonomic_follower_gtest.cpp
+// trajectory_follower_gtest.cpp
 
-#include "navigatr/followers/holonomic_follower.h"
+#include "navigatr/followers/trajectory_follower.h"
 
 #include <gtest/gtest.h>
 
@@ -9,8 +9,8 @@ namespace navigatr
 namespace
 {
 
-HolonomicFollower started() {
-    HolonomicFollower f;
+TrajectoryFollower started() {
+    TrajectoryFollower f;
     Config            c;
     c.gains.kp         = 2;
     c.gains.heading_kp = 3;
@@ -25,8 +25,8 @@ Goal at(const Target& target) {
     return goal;
 }
 
-TEST(HolonomicFollower, OnTargetPassesTheVelocityIntoTheRobotFrame) {
-    HolonomicFollower f = started();
+TEST(TrajectoryFollower, OnTargetPassesTheVelocityIntoTheRobotFrame) {
+    TrajectoryFollower f = started();
     Pose              pose;
     pose.heading = 90; // facing +y
     Target target;
@@ -39,8 +39,8 @@ TEST(HolonomicFollower, OnTargetPassesTheVelocityIntoTheRobotFrame) {
     EXPECT_NEAR(s.turn, 0, 1e-9);
 }
 
-TEST(HolonomicFollower, PositionErrorPullsTowardTheTarget) {
-    HolonomicFollower f = started();
+TEST(TrajectoryFollower, PositionErrorPullsTowardTheTarget) {
+    TrajectoryFollower f = started();
     Pose              pose; // at the origin facing +x
     Target            target;
     target.y              = 5; // 5 in to the left
@@ -49,8 +49,8 @@ TEST(HolonomicFollower, PositionErrorPullsTowardTheTarget) {
     EXPECT_NEAR(s.left, 10, 1e-9); // kp 2
 }
 
-TEST(HolonomicFollower, HeadingErrorTheShortWayAndClamped) {
-    HolonomicFollower f = started();
+TEST(TrajectoryFollower, HeadingErrorTheShortWayAndClamped) {
+    TrajectoryFollower f = started();
     Pose              pose;
     pose.heading = 350;
     Target target;

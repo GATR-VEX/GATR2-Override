@@ -61,7 +61,7 @@ GATR2_LIB_SRC_navigatr := \
 	$(GATR2_LIB_ROOT)/naviGATR/src/profiles/profile.cpp \
 	$(GATR2_LIB_ROOT)/naviGATR/src/pipeline.cpp \
 	$(GATR2_LIB_ROOT)/naviGATR/src/profiles/trapezoid_profile.cpp \
-	$(GATR2_LIB_ROOT)/naviGATR/src/followers/holonomic_follower.cpp \
+	$(GATR2_LIB_ROOT)/naviGATR/src/followers/trajectory_follower.cpp \
 	$(GATR2_LIB_ROOT)/naviGATR/src/followers/pure_pursuit_follower.cpp \
 	$(GATR2_LIB_ROOT)/naviGATR/src/drives/mecanum_drive.cpp \
 	$(GATR2_LIB_ROOT)/naviGATR/src/driver/heading_hold.cpp \

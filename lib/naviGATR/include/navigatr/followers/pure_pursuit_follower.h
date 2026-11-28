@@ -4,14 +4,15 @@
 // nearest the robot. Speed comes from the path's speed limits where the
 // robot is, not from the clock, so a robot that falls behind does not chase
 // a target running away from it. Heading follows the path. Turn steps, and
-// the last lookahead inches of a move, are the holonomic PID on the end pose.
+// the last lookahead inches of a move, are TrajectoryFollower's PID on the
+// end pose.
 
 #pragma once
 #include <cstddef>
 #include <vector>
 
 #include "navigatr/followers/follower.h"
-#include "navigatr/followers/holonomic_follower.h"
+#include "navigatr/followers/trajectory_follower.h"
 
 namespace navigatr
 {
@@ -39,7 +40,7 @@ class PurePursuitFollower : public Follower {
   private:
     PurePursuitConfig   config_;
     Limits              limits_;
-    HolonomicFollower   hold_; // turns and the last stretch
+    TrajectoryFollower  hold_; // turns and the last stretch
     Pid                 heading_;
     const Path*         path_ = nullptr; // the speeds below are for it
     std::vector<double> speeds_;         // in/s per path point
